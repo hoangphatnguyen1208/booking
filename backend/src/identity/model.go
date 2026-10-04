@@ -1,10 +1,12 @@
 package identity
 
-type User struct {
-	ID       string `json:"id" gorm:"type:auto_increment;primaryKey"`
-	Email    string `json:"email" gorm:"type:varchar(255);not null;unique"`
-	HashedPassword string `json:"hashed_password" gorm:"type:varchar(255);not null"`
+import "time"
 
-	CreatedAt string `json:"created_at" gorm:"autoCreateTime"`
-	UpdatedAt string `json:"updated_at" gorm:"autoUpdateTime"`
+type User struct {
+    ID             string    `json:"id" gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+    Email          string    `json:"email" gorm:"type:varchar(255);not null;uniqueIndex"`
+    HashedPassword string    `json:"-" gorm:"type:text;not null"`
+    CreatedAt      time.Time `json:"created_at" gorm:"not null"`
+    UpdatedAt      time.Time `json:"updated_at" gorm:"not null"`
 }
+

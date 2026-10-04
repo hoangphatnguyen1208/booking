@@ -8,6 +8,8 @@ import (
 
 type Env struct {
 	DbStr string `mapstructure:"DB_STR"`
+	JwtSecret string `mapstructure:"JWT_SECRET"`
+	JwtExpiresTime int `mapstructure:"JWT_EXPIRE_TIME"`
 }
 
 func NewEnv() *Env {

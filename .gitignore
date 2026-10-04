@@ -1,0 +1,39 @@
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Build outputs
+/backend/bin/
+/backend/build/
+/backend/dist/
+/backend/backend
+/backend/src.exe
+*.exe
+*.test
+*.test.exe
+
+# Test coverage and profiling
+coverage.out
+coverage.html
+*.coverprofile
+*.prof
+
+# Frontend dependencies and generated files
+node_modules/
+/frontend/dist/
+/frontend/build/
+/frontend/.next/
+
+# Local temporary files
+*.log
+*.tmp
+*.swp
+*.swo
+
+# Editor and operating system files
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini

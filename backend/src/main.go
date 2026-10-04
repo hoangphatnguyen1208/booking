@@ -5,6 +5,9 @@ import (
 
 	"booking/src/config"
 	"booking/src/db"
+	"booking/src/identity"
+
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
@@ -21,5 +24,13 @@ func main() {
 		log.Fatalf("failed to migrate database: %v", err)
 	}
 
+	tokens := identity.NewTokenManager(env.JwtSecret, env.JwtExpiresTime)
+	
+	repo := identity.NewRepository(conn)
+	service := identity.NewService(repo, tokens)
+	controller := identity.NewController(service)
+
+	router := gin.Default()
+	controller.RegisterRoutes(router)
 	log.Println("Connected to the database successfully:", conn)
 }
