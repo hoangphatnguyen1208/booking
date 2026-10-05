@@ -1,0 +1,166 @@
+basePath: /
+definitions:
+  identity.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  identity.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  identity.LoginResponse:
+    properties:
+      access_token:
+        type: string
+      expires_in:
+        type: integer
+      token_type:
+        type: string
+    type: object
+  identity.OAuthErrorResponse:
+    properties:
+      error:
+        type: string
+      error_description:
+        type: string
+    type: object
+  identity.RegisterRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  identity.User:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      updated_at:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: Hotel booking API.
+  title: Booking API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Login credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/identity.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/identity.LoginResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/identity.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/identity.ErrorResponse'
+      summary: Sign in and receive a JWT
+      tags:
+      - Auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Registration details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/identity.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/identity.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/identity.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/identity.ErrorResponse'
+      summary: Register an account
+      tags:
+      - Auth
+  /auth/token:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      parameters:
+      - description: Grant type
+        enum:
+        - password
+        in: formData
+        name: grant_type
+        required: true
+        type: string
+      - description: Account email
+        in: formData
+        name: username
+        required: true
+        type: string
+      - description: Password
+        in: formData
+        name: password
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/identity.LoginResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/identity.OAuthErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/identity.OAuthErrorResponse'
+      summary: Get a token using the standard Swagger login form
+      tags:
+      - Auth
+securityDefinitions:
+  OAuth2Password:
+    description: Use your email as username. Client ID and client secret can be left
+      empty.
+    flow: password
+    tokenUrl: /auth/token
+    type: oauth2
+swagger: "2.0"

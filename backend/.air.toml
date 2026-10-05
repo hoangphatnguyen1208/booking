@@ -1,0 +1,24 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+cmd = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev-build.ps1"
+bin = "tmp/backend.exe"
+entrypoint = ["tmp/backend.exe"]
+include_ext = ["go", "mod", "sum", "ps1", "html"]
+include_file = [".env"]
+exclude_dir = ["tmp", "docs", ".git", "vendor"]
+exclude_regex = ["_test\\.go"]
+exclude_unchanged = true
+delay = 500
+stop_on_error = true
+log = "build-errors.log"
+
+[log]
+time = true
+
+[misc]
+clean_on_exit = true
+
+[screen]
+clear_on_rebuild = false
