@@ -20,7 +20,7 @@ func (t *TokenManager) GenerateToken(user *User) (string, error) {
 	now := time.Now()
 
 	claims := jwt.RegisteredClaims{
-		Subject: user.Email,
+		Subject: user.ID,
 		Issuer: "booking-api",
 		Audience: jwt.ClaimStrings{"booking-client"},
 		IssuedAt: jwt.NewNumericDate(now),
@@ -38,7 +38,7 @@ func (t *TokenManager) ValidateToken(tokenString string) (string, error) {
 		tokenString,
 		claims,
 		func(token *jwt.Token) (any, error) {
-			return t.secret, nil
+			return []byte(t.secret), nil
 		},
 		jwt.WithValidMethods([]string{"HS256"}),
 		jwt.WithIssuer("booking-api"),
@@ -49,16 +49,8 @@ func (t *TokenManager) ValidateToken(tokenString string) (string, error) {
 		return "", fmt.Errorf("failed to validate token: %w", err)
 	}
 
-	if !token.Valid {
+	if !token.Valid || claims.Subject == "" || claims.IssuedAt == nil {
 		return "", fmt.Errorf("invalid token")
-	}
-
-	if claims.ExpiresAt.Time.Before(time.Now()) {
-		return "", fmt.Errorf("token has expired")
-	}
-
-	if claims.IssuedAt.Time.After(time.Now()) {
-		return "", fmt.Errorf("token is not yet valid")
 	}
 
 	return claims.Subject, nil

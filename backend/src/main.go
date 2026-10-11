@@ -7,6 +7,7 @@ import (
 	"booking/src/config"
 	"booking/src/db"
 	"booking/src/identity"
+	"booking/src/middleware"
 	"booking/src/swaggerui"
 
 	"github.com/gin-gonic/gin"
@@ -15,9 +16,9 @@ import (
 // @title Booking API
 // @version 1.0
 // @description Hotel booking API.
-// @BasePath /
+// @BasePath /api/v1
 // @securityDefinitions.oauth2.password OAuth2Password
-// @tokenUrl /auth/token
+// @tokenUrl /api/v1/auth/token
 // @description Use your email as username. Client ID and client secret can be left empty.
 func main() {
 	env := config.NewEnv()
@@ -36,11 +37,17 @@ func main() {
 	tokens := identity.NewTokenManager(env.JwtSecret, env.JwtExpiresTime)
 
 	repo := identity.NewRepository(conn)
+
 	service := identity.NewService(repo, tokens)
+
 	controller := identity.NewController(service)
 
+	RequireAuth := middleware.RequireAuth(tokens)
+
 	router := gin.Default()
-	controller.RegisterRoutes(router)
+	api := router.Group("/api/v1")
+	controller.RegisterRoutes(api, RequireAuth)
+	
 	swaggerui.RegisterRoutes(router)
 	log.Println("Connected to the database successfully:", conn)
 

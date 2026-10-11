@@ -11,7 +11,9 @@ import (
 func Connect(env *config.Env) *gorm.DB {
 	dsn := env.DbStr
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		TranslateError: true,
+	})
 	if err != nil {
 		panic(fmt.Sprintf("failed to connect database: %v", err))
 	}

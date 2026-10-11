@@ -16,12 +16,14 @@ func NewController(service *Service) *Controller {
 	return &Controller{service: service}
 }
 
-func (c *Controller) RegisterRoutes(router *gin.Engine) {
+func (c *Controller) RegisterRoutes(router *gin.RouterGroup, RequireAuth gin.HandlerFunc) {
 	auth := router.Group("/auth")
 	{
 		auth.POST("/register", c.Register)
 		auth.POST("/login", c.Login)
 		auth.POST("/token", c.Token)
+
+		auth.GET("/me", RequireAuth, c.Me)
 	}
 }
 
@@ -80,9 +82,23 @@ func (c *Controller) Register(ctx *gin.Context) {
 		return
 	}
 
-	user, err := c.service.Register(ctx, req)
+	user, err := c.service.Register(ctx.Request.Context(), req)
+	if errors.Is(err, ErrInvalidPassword) {
+		ctx.JSON(http.StatusBadRequest, ErrorResponse{
+			Error: "Invalid password",
+		})
+		return
+	}
+
+	if errors.Is(err, ErrEmailExists) {
+		ctx.JSON(http.StatusConflict, ErrorResponse{
+			Error: "Email already exists",
+		})
+		return
+	}
+
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
 		return
 	}
 
@@ -106,11 +122,39 @@ func (c *Controller) Login(ctx *gin.Context) {
 		return
 	}
 
-	user, err := c.service.Login(ctx, req)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	user, err := c.service.Login(ctx.Request.Context(), req)
+	if errors.Is(err, ErrInvalidCredentials) {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid credentials"})
 		return
 	}
 
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, user)
+}
+
+// Me godoc
+// @Summary Get current user
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Success 200 {object} LoginResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /auth/me [get]
+func (c *Controller) Me(ctx *gin.Context) {
+	userId := ctx.MustGet("user_id").(string)
+	user, err := c.service.Me(ctx.Request.Context(), userId)
+	if errors.Is(err, ErrUserNotFound) {
+		ctx.JSON(http.StatusBadRequest, ErrorResponse{Error: "User not found"})
+		return
+	}
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
+		return
+	}
 	ctx.JSON(http.StatusOK, user)
 }

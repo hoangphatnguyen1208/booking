@@ -8,7 +8,10 @@ import (
 	"gorm.io/gorm"
 )
 
-var ErrUserNotFound = errors.New("user not found")
+var (
+    ErrUserNotFound  = errors.New("user not found")
+    ErrEmailExists   = errors.New("email already exists")
+)
 
 type Repository struct {
 	db *gorm.DB
@@ -19,7 +22,11 @@ func NewRepository(db *gorm.DB) *Repository {
 }
 
 func (r *Repository) Create(ctx context.Context, user *User) error {
-	err := r.db.WithContext(ctx).Create(user).Error;
+	err := r.db.WithContext(ctx).Create(user).Error
+
+	if errors.Is(err, gorm.ErrDuplicatedKey) {
+		return ErrEmailExists
+	}
 
 	if err != nil {
 		return fmt.Errorf("failed to create user: %w", err)
@@ -59,29 +66,29 @@ func (r *Repository) FindByID(ctx context.Context, id string) (*User, error) {
 }
 
 func (r *Repository) Update(ctx context.Context, user *User) error {
-	err := r.db.WithContext(ctx).Where("id = ?", user.ID).Updates(user).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return ErrUserNotFound
+	result := r.db.WithContext(ctx).Where("id = ?", user.ID).Updates(user)
+
+	if result.Error != nil {
+		return fmt.Errorf("failed to update user: %w", result.Error)
 	}
 
-	if err != nil {
-		return fmt.Errorf("failed to update user: %w", err)
+	if result.RowsAffected == 0 {
+		return ErrUserNotFound
 	}
 
 	return nil
 }
 
 func (r *Repository) Delete(ctx context.Context, id string) error {
-	err := r.db.WithContext(ctx).Where("id = ?", id).Delete(&User{}).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return ErrUserNotFound
+	result := r.db.WithContext(ctx).Where("id = ?", id).Delete(&User{})
+
+	if result.Error != nil {
+		return fmt.Errorf("failed to delete user: %w", result.Error)
 	}
 
-	if err != nil {
-		return fmt.Errorf("failed to delete user: %w", err)
+	if result.RowsAffected == 0 {
+		return ErrUserNotFound
 	}
 
 	return nil
 }
-
-

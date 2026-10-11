@@ -26,6 +26,8 @@ node_modules/
 /frontend/dist/
 /frontend/build/
 /frontend/.next/
+/frontend/test-results/
+/frontend/playwright-report/
 
 # Local temporary files
 *.log

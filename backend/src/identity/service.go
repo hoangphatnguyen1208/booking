@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/mail"
+	"unicode/utf8"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -14,7 +15,10 @@ type Service struct {
 	tokens *TokenManager
 }
 
-var ErrInvalidCredentials = errors.New("invalid email or password")
+var (
+	ErrInvalidCredentials = errors.New("invalid email or password")
+	ErrInvalidPassword    = errors.New("password must contain at least 8 characters and at most 72 bytes")
+)
 
 func NewService(repo *Repository, tokens *TokenManager) *Service {
 	return &Service{repo: repo, tokens: tokens}
@@ -24,6 +28,10 @@ func (s *Service) Register(ctx context.Context, req RegisterRequest) (*User, err
 	_, err := mail.ParseAddress(req.Email)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse email: %w", err)
+	}
+
+	if utf8.RuneCountInString(req.Password) < 8 || len(req.Password) > 72 {
+		return nil, ErrInvalidPassword
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
@@ -74,4 +82,8 @@ func (s *Service) Login(ctx context.Context, req LoginRequest) (*LoginResponse, 
 		TokenType:   "Bearer",
 		ExpiresIn:   s.tokens.expireTime,
 	}, nil
+}
+
+func (s *Service) Me(ctx context.Context, id string) (*User, error) {
+	return s.repo.FindByID(ctx, id)
 }
