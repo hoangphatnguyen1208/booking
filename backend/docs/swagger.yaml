@@ -1,5 +1,89 @@
-basePath: /
+basePath: /api/v1
 definitions:
+  hotel.CreateRequest:
+    properties:
+      address:
+        maxLength: 255
+        type: string
+      city:
+        maxLength: 100
+        type: string
+      country:
+        maxLength: 100
+        type: string
+      name:
+        maxLength: 100
+        type: string
+      rank:
+        maximum: 5
+        type: integer
+      slug:
+        maxLength: 100
+        type: string
+    required:
+    - city
+    - country
+    - name
+    - slug
+    type: object
+  hotel.Hotel:
+    properties:
+      address:
+        type: string
+      city:
+        type: string
+      country:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      rank:
+        type: integer
+      slug:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  hotel.ListResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/hotel.Hotel'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+    type: object
+  hotel.UpdateRequest:
+    properties:
+      address:
+        maxLength: 255
+        type: string
+      city:
+        maxLength: 100
+        type: string
+      country:
+        maxLength: 100
+        type: string
+      name:
+        maxLength: 100
+        type: string
+      rank:
+        maximum: 5
+        type: integer
+      slug:
+        maxLength: 100
+        type: string
+    required:
+    - city
+    - country
+    - name
+    - slug
+    type: object
   identity.ErrorResponse:
     properties:
       error:
@@ -87,6 +171,28 @@ paths:
       summary: Sign in and receive a JWT
       tags:
       - Auth
+  /auth/me:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/identity.LoginResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/identity.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/identity.ErrorResponse'
+      summary: Get current user
+      tags:
+      - Auth
   /auth/register:
     post:
       consumes:
@@ -156,11 +262,230 @@ paths:
       summary: Get a token using the standard Swagger login form
       tags:
       - Auth
+  /hotels:
+    get:
+      parameters:
+      - default: 1
+        description: Page
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size, maximum 100
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hotel.ListResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List hotels
+      tags:
+      - Hotels
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Hotel details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/hotel.CreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/hotel.Hotel'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - OAuth2Password: []
+      summary: Create hotel
+      tags:
+      - Hotels
+  /hotels/{id}:
+    delete:
+      parameters:
+      - description: Hotel UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - OAuth2Password: []
+      summary: Delete hotel
+      tags:
+      - Hotels
+    get:
+      parameters:
+      - description: Hotel UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hotel.Hotel'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get hotel
+      tags:
+      - Hotels
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Hotel UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Complete hotel details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/hotel.UpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hotel.Hotel'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - OAuth2Password: []
+      summary: Replace all editable hotel fields
+      tags:
+      - Hotels
 securityDefinitions:
   OAuth2Password:
     description: Use your email as username. Client ID and client secret can be left
       empty.
     flow: password
-    tokenUrl: /auth/token
+    tokenUrl: /api/v1/auth/token
     type: oauth2
 swagger: "2.0"

@@ -32,13 +32,13 @@ func TestSwaggerUIAndAuthSchema(t *testing.T) {
 			if err := json.Unmarshal(response.Body.Bytes(), &schema); err != nil {
 				t.Fatal(err)
 			}
-			for _, endpoint := range []string{"/auth/register", "/auth/login", "/auth/token"} {
+			for _, endpoint := range []string{"/auth/register", "/auth/login", "/auth/token", "/hotels", "/hotels/{id}"} {
 				if _, ok := schema.Paths[endpoint]; !ok {
 					t.Fatalf("missing endpoint %s", endpoint)
 				}
 			}
 			auth := schema.SecurityDefinitions["OAuth2Password"]
-			if auth.Type != "oauth2" || auth.Flow != "password" || auth.TokenURL != "/auth/token" {
+			if auth.Type != "oauth2" || auth.Flow != "password" || auth.TokenURL != "/api/v1/auth/token" {
 				t.Fatal("standard password authorization is not configured")
 			}
 		}
