@@ -71,7 +71,10 @@ test("live PostgreSQL: guest books and cancels a real room through the UI", asyn
   await page.getByRole("button", { name: "Đăng nhập ↗" }).click();
   await page.getByLabel("Email", { exact: true }).fill(guest.email);
   await page.getByLabel("Mật khẩu", { exact: true }).fill(password);
-  await page.getByRole("button", { name: "Đăng nhập →", exact: true }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Đăng nhập →", exact: true })
+    .click();
   await expect(
     page.getByRole("button", { name: "Đăng xuất", exact: true }),
   ).toBeVisible();
@@ -118,9 +121,103 @@ test("live PostgreSQL: guest books and cancels a real room through the UI", asyn
       }),
   );
   expect((await rows.json())[0].available).toBe(1);
+  await page.getByRole("button", { name: "Đăng xuất", exact: true }).click();
+  await page.getByRole("button", { name: "Đăng nhập ↗" }).click();
+  await page.getByLabel("Email", { exact: true }).fill(owner.email);
+  await page.getByLabel("Mật khẩu", { exact: true }).fill(password);
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Đăng nhập →", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Đăng xuất", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Quản lý", exact: true }).click();
+  await page
+    .getByRole("button", {
+      name: "Phòng và nhân sự Live Hotel " + suffix,
+      exact: true,
+    })
+    .click();
+  await page.getByLabel("Tên loại phòng", { exact: true }).fill("Managed Room");
+  await page
+    .getByRole("button", { name: "Lưu loại phòng", exact: true })
+    .click();
+  await expect(
+    page.getByRole("status").filter({ hasText: "Đã lưu loại phòng." }),
+  ).toBeVisible();
+  await page.getByLabel("Từ ngày", { exact: true }).fill(from);
+  await page.getByLabel("Đến ngày", { exact: true }).fill(to);
+  await page
+    .getByRole("button", { name: "Lưu giá và tồn", exact: true })
+    .click();
+  await expect(
+    page
+      .getByRole("status")
+      .filter({ hasText: "Đã lưu giá và tồn phòng theo ngày." }),
+  ).toBeVisible();
+  await page
+    .getByLabel("Email tài khoản đã đăng ký", { exact: true })
+    .fill(guest.email);
+  await page
+    .getByRole("button", { name: "Cập nhật quyền", exact: true })
+    .click();
+  await expect(
+    page.getByRole("status").filter({ hasText: "Đã cập nhật thành viên." }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(guest.email + " · manager", { exact: true }),
+  ).toBeVisible();
+  const managed = await request.get(api + "/me/hotels", {
+    headers: { Authorization: "Bearer " + guest.token },
+  });
+  expect(
+    (await managed.json()).items.some(
+      (item: { id: string }) => item.id === hotel.id,
+    ),
+  ).toBe(true);
   await page.screenshot({
     path: "test-results/live-" + test.info().project.name + ".png",
     fullPage: true,
   });
 });
 
+test("live admin can review users, change roles and read audit events", async ({
+  page,
+}) => {
+  test.skip(
+    process.env.RUN_LIVE !== "1" || !process.env.LIVE_ADMIN_EMAIL,
+    "Requires an explicitly bootstrapped test admin",
+  );
+  await page.goto("/");
+  await page.getByRole("button", { name: "Đăng nhập ↗" }).click();
+  await page
+    .getByLabel("Email", { exact: true })
+    .fill(process.env.LIVE_ADMIN_EMAIL!);
+  await page
+    .getByLabel("Mật khẩu", { exact: true })
+    .fill(process.env.LIVE_ADMIN_PASSWORD!);
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Đăng nhập →", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Admin", exact: true }).click();
+  const grant = page.getByRole("button", { name: /Cấp quyền admin ·/ }).first();
+  const label = await grant.innerText();
+  const email = label.split("·")[1].trim();
+  await grant.click();
+  const revoke = page.getByRole("button", {
+    name: "Thu hồi admin · " + email,
+    exact: true,
+  });
+  await expect(revoke).toBeVisible();
+  await revoke.click();
+  await expect(
+    page.getByRole("button", {
+      name: "Cấp quyền admin · " + email,
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Tải nhật ký", exact: true }).click();
+  await expect(page.locator("tbody tr").first()).toBeVisible();
+});

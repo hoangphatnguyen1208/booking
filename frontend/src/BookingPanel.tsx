@@ -24,6 +24,7 @@ export default function BookingPanel({
     [error, setError] = useState(""),
     [booking, setBooking] = useState<Booking | null>(null);
   const keyRef = useRef({ payload: "", key: "" });
+  const submitLock = useRef(false);
   const [name, setName] = useState(""),
     [phone, setPhone] = useState("");
   function changed() {
@@ -55,42 +56,43 @@ export default function BookingPanel({
       onLogin();
       return;
     }
-    if (!selected || busy) return;
-    const input: BookingInput = {
-      room_type_id: selected.room.id,
-      check_in: from,
-      check_out: to,
-      rooms,
-      guests,
-      guest_name: name.trim(),
-      phone: phone.trim(),
-      expected_total: selected.total,
-    };
-    const payload = JSON.stringify(input);
-    if (keyRef.current.payload !== payload) {
-      const hash = Array.from(
-        new Uint8Array(
-          await crypto.subtle.digest(
-            "SHA-256",
-            new TextEncoder().encode(token + payload),
-          ),
-        ),
-      )
-        .map((x) => x.toString(16).padStart(2, "0"))
-        .join("");
-      let key = crypto.randomUUID();
-      try {
-        const existing = sessionStorage.getItem("booking-attempt:" + hash);
-        if (existing) key = existing as typeof key;
-        else sessionStorage.setItem("booking-attempt:" + hash, key);
-      } catch {
-        /* Keep an in-memory key when storage is unavailable. */
-      }
-      keyRef.current = { payload, key };
-    }
+    if (!selected || busy || submitLock.current) return;
+    submitLock.current = true;
     setBusy(true);
     setError("");
     try {
+      const input: BookingInput = {
+        room_type_id: selected.room.id,
+        check_in: from,
+        check_out: to,
+        rooms,
+        guests,
+        guest_name: name.trim(),
+        phone: phone.trim(),
+        expected_total: selected.total,
+      };
+      const payload = JSON.stringify(input);
+      if (keyRef.current.payload !== payload) {
+        const hash = Array.from(
+          new Uint8Array(
+            await crypto.subtle.digest(
+              "SHA-256",
+              new TextEncoder().encode(token + payload),
+            ),
+          ),
+        )
+          .map((x) => x.toString(16).padStart(2, "0"))
+          .join("");
+        let key = crypto.randomUUID();
+        try {
+          const existing = sessionStorage.getItem("booking-attempt:" + hash);
+          if (existing) key = existing as typeof key;
+          else sessionStorage.setItem("booking-attempt:" + hash, key);
+        } catch {
+          /* Keep an in-memory key when storage is unavailable. */
+        }
+        keyRef.current = { payload, key };
+      }
       setBooking(await bookingApi.book(token, keyRef.current.key, input));
     } catch (err) {
       setError(
@@ -99,6 +101,7 @@ export default function BookingPanel({
           : "Không tạo được đơn. Thử lại với cùng thông tin để tra lại kết quả.",
       );
     } finally {
+      submitLock.current = false;
       setBusy(false);
     }
   }
