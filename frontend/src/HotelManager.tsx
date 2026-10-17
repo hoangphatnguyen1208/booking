@@ -6,6 +6,8 @@ import { bookingApi } from "./booking-api";
 import HotelWorkspace from "./HotelWorkspace";
 
 const blank: HotelInput = {
+  image_url: "",
+  amenities: [],
   name: "",
   slug: "",
   address: "",
@@ -78,8 +80,18 @@ export default function HotelManager({
     setError("");
     setMessage("");
     try {
-      if (editing) await api.updateHotel(token, editing, input);
-      else await api.createHotel(token, input);
+      const payload = {
+        ...input,
+        amenities: [
+          ...new Set(
+            (input.amenities || [])
+              .map((value) => value.trim())
+              .filter(Boolean),
+          ),
+        ],
+      };
+      if (editing) await api.updateHotel(token, editing, payload);
+      else await api.createHotel(token, payload);
       setMessage(editing ? "Đã cập nhật khách sạn." : "Đã tạo khách sạn.");
       setEditing(null);
       setInput(blank);
@@ -176,6 +188,31 @@ export default function HotelManager({
               ))}
             </select>
           </label>
+          <label>
+            Ảnh đại diện (URL HTTPS)
+            <input
+              type="url"
+              value={input.image_url || ""}
+              maxLength={2048}
+              onChange={(e) =>
+                setInput({ ...input, image_url: e.target.value })
+              }
+            />
+          </label>
+          <label>
+            Tiện nghi (phân cách bằng dấu phẩy)
+            <input
+              value={(input.amenities || []).join(", ")}
+              onChange={(e) =>
+                setInput({
+                  ...input,
+                  amenities: e.target.value
+                    .split(",")
+                    .map((value) => value.trim()),
+                })
+              }
+            />
+          </label>
           <button className="primary" type="submit">
             {busy ? "Đang xử lý…" : editing ? "Lưu thay đổi" : "Tạo khách sạn"}
           </button>
@@ -246,6 +283,8 @@ export default function HotelManager({
                       city: hotel.city,
                       country: hotel.country,
                       rank: hotel.rank,
+                      image_url: hotel.image_url || "",
+                      amenities: hotel.amenities || [],
                     });
                     setError("");
                     setMessage("");

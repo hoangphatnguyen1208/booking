@@ -23,6 +23,25 @@ const navigation = [
 function Artwork({ stay }: { stay: Stay }) {
   return (
     <div className={`stay-art ${stay.style}`} aria-hidden="true">
+      {stay.image_url && (
+        <img
+          src={stay.image_url}
+          alt=""
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onError={(e) => {
+            e.currentTarget.style.display = "none";
+          }}
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            zIndex: 1,
+          }}
+        />
+      )}
       <div className="scenery" />
       <div className="cabin">
         <i />
@@ -827,6 +846,13 @@ export default function App() {
               {detail.city}, {detail.country} · {detail.rating}
             </p>
             <Artwork stay={detail} />
+            <div className="filters">
+              {detail.amenities?.map((item) => (
+                <span className="sample-badge" key={item}>
+                  {item}
+                </span>
+              ))}
+            </div>
             {detailLoading ? (
               <p role="status">Đang tải chi tiết…</p>
             ) : detailError ? (

@@ -3,6 +3,7 @@ package hotel
 import (
 	"context"
 	"errors"
+	"net/url"
 	"regexp"
 	"strings"
 	"unicode/utf8"
@@ -12,6 +13,20 @@ var ErrInvalidHotel = errors.New("invalid hotel details")
 var slugPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
 
 func validateHotel(h *Hotel) error {
+	if h.ImageURL != "" {
+		u, err := url.Parse(h.ImageURL)
+		if err != nil || u.Scheme != "https" || u.Hostname() == "" || u.User != nil || len(h.ImageURL) > 2048 {
+			return ErrInvalidHotel
+		}
+	}
+	if len(h.Amenities) > 20 {
+		return ErrInvalidHotel
+	}
+	for _, item := range h.Amenities {
+		if strings.TrimSpace(item) == "" || utf8.RuneCountInString(item) > 60 {
+			return ErrInvalidHotel
+		}
+	}
 	h.Name = strings.TrimSpace(h.Name)
 	h.Slug = strings.TrimSpace(h.Slug)
 	h.Address = strings.TrimSpace(h.Address)
@@ -33,14 +48,14 @@ func (s *Service) List(ctx context.Context, page, limit int) ([]Hotel, error) {
 	return s.repo.List(ctx, page, limit)
 }
 func (s *Service) Create(ctx context.Context, req *CreateRequest) (*Hotel, error) {
-	hotel := &Hotel{Name: req.Name, Slug: req.Slug, Address: req.Address, City: req.City, Country: req.Country, Rank: req.Rank}
+	hotel := &Hotel{Name: req.Name, Slug: req.Slug, Address: req.Address, City: req.City, Country: req.Country, Rank: req.Rank, ImageURL: req.ImageURL, Amenities: req.Amenities}
 	if err := validateHotel(hotel); err != nil {
 		return nil, err
 	}
 	return s.repo.Create(ctx, hotel)
 }
 func (s *Service) Update(ctx context.Context, id string, req *UpdateRequest) (*Hotel, error) {
-	hotel := &Hotel{Name: req.Name, Slug: req.Slug, Address: req.Address, City: req.City, Country: req.Country, Rank: req.Rank}
+	hotel := &Hotel{Name: req.Name, Slug: req.Slug, Address: req.Address, City: req.City, Country: req.Country, Rank: req.Rank, ImageURL: req.ImageURL, Amenities: req.Amenities}
 	if err := validateHotel(hotel); err != nil {
 		return nil, err
 	}

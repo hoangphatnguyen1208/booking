@@ -2,6 +2,7 @@ package hotel
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"gorm.io/gorm"
@@ -57,10 +58,15 @@ func (r *Repository) Create(ctx context.Context, hotel *Hotel) (*Hotel, error) {
 	return hotel, nil
 }
 func (r *Repository) Update(ctx context.Context, id string, hotel *Hotel) (*Hotel, error) {
+	if hotel.Amenities == nil {
+		hotel.Amenities = []string{}
+	}
+	amenities, _ := json.Marshal(hotel.Amenities)
 	var updated Hotel
 	result := r.db.WithContext(ctx).Model(&updated).Clauses(clause.Returning{}).Where("id = ?", id).Updates(map[string]any{
 		"name": hotel.Name, "slug": hotel.Slug, "address": hotel.Address,
 		"city": hotel.City, "country": hotel.Country, "rank": hotel.Rank,
+		"image_url": hotel.ImageURL, "amenities": string(amenities),
 	})
 	if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
 		return nil, ErrSlugExists

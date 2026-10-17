@@ -13,8 +13,10 @@ type Hotel struct {
 	Address string `json:"address" gorm:"type:varchar(255)"`
 	City    string `json:"city" gorm:"type:varchar(100);not null"`
 
-	Country string `json:"country" gorm:"type:varchar(100);not null"`
-	Rank    uint   `json:"rank" gorm:"type:smallint;not null"`
+	Country   string   `json:"country" gorm:"type:varchar(100);not null"`
+	Rank      uint     `json:"rank" gorm:"type:smallint;not null"`
+	ImageURL  string   `json:"image_url" gorm:"type:text;not null;default:''"`
+	Amenities []string `json:"amenities" gorm:"type:jsonb;serializer:json;not null;default:'[]'"`
 
 	CreatedAt time.Time      `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt time.Time      `json:"updated_at" gorm:"autoUpdateTime"`

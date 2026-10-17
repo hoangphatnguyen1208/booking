@@ -6,6 +6,8 @@ export type User = {
   updated_at: string;
 };
 export type Hotel = {
+  image_url?: string;
+  amenities?: string[];
   id: string;
   name: string;
   slug: string;
@@ -18,7 +20,14 @@ export type Hotel = {
 };
 export type HotelInput = Pick<
   Hotel,
-  "name" | "slug" | "address" | "city" | "country" | "rank"
+  | "name"
+  | "slug"
+  | "address"
+  | "city"
+  | "country"
+  | "rank"
+  | "image_url"
+  | "amenities"
 >;
 export type HotelList = { items: Hotel[]; page: number; limit: number };
 export type TokenResponse = {

@@ -33,7 +33,7 @@ func TestUpdateReturnsPersistedHotelAndZeroValues(t *testing.T) {
 	id := "11111111-1111-1111-1111-111111111111"
 	now := time.Now().UTC()
 	mock.ExpectBegin()
-	mock.ExpectQuery(`UPDATE "hotels" SET .* RETURNING \*`).WithArgs("", "Hue", "VN", "New", 0, "new", sqlmock.AnyArg(), id).WillReturnRows(sqlmock.NewRows([]string{"id", "name", "slug", "address", "city", "country", "rank", "created_at", "updated_at"}).AddRow(id, "New", "new", "", "Hue", "VN", 0, now, now))
+	mock.ExpectQuery(`UPDATE "hotels" SET .* RETURNING \*`).WithArgs("", "[]", "Hue", "VN", "", "New", 0, "new", sqlmock.AnyArg(), id).WillReturnRows(sqlmock.NewRows([]string{"id", "name", "slug", "address", "city", "country", "rank", "created_at", "updated_at"}).AddRow(id, "New", "new", "", "Hue", "VN", 0, now, now))
 	mock.ExpectCommit()
 	h, err := repo.Update(context.Background(), id, &Hotel{Name: "New", Slug: "new", City: "Hue", Country: "VN"})
 	if err != nil {
