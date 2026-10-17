@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"time"
 )
 
 var (
@@ -17,8 +18,30 @@ type Repository struct{ db *gorm.DB }
 
 func NewRepository(db *gorm.DB) *Repository { return &Repository{db: db} }
 func (r *Repository) List(ctx context.Context, page, limit int) ([]Hotel, error) {
+	return r.ListFiltered(ctx, page, limit, "", 0, "")
+}
+func (r *Repository) ListFiltered(ctx context.Context, page, limit int, query string, rank int, actor string) ([]Hotel, error) {
+	return r.Search(ctx, page, limit, query, rank, actor, "", "", 1, 1)
+}
+func (r *Repository) Search(ctx context.Context, page, limit int, query string, rank int, actor, from, to string, rooms, guests int) ([]Hotel, error) {
 	items := make([]Hotel, 0)
-	if err := r.db.WithContext(ctx).Order("created_at DESC, id ASC").Offset((page - 1) * limit).Limit(limit).Find(&items).Error; err != nil {
+	db := r.db.WithContext(ctx)
+	if query != "" {
+		db = db.Where("name ILIKE ? OR city ILIKE ? OR country ILIKE ?", "%"+query+"%", "%"+query+"%", "%"+query+"%")
+	}
+	if rank > 0 {
+		db = db.Where("rank = ?", rank)
+	}
+	if actor != "" {
+		db = db.Where("EXISTS (SELECT 1 FROM hotel_members hm WHERE hm.hotel_id = hotels.id AND hm.user_id = ?) OR EXISTS (SELECT 1 FROM user_roles ur JOIN roles r ON r.id = ur.role_id WHERE ur.user_id = ? AND r.name = 'admin')", actor, actor)
+	}
+	if from != "" {
+		start, _ := time.Parse("2006-01-02", from)
+		end, _ := time.Parse("2006-01-02", to)
+		nights := int(end.Sub(start).Hours() / 24)
+		db = db.Where("EXISTS (SELECT 1 FROM room_types rt JOIN inventories i ON i.room_type_id = rt.id WHERE rt.hotel_id = hotels.id AND rt.active = true AND rt.capacity * ? >= ? AND i.date >= ? AND i.date < ? AND i.capacity - i.reserved >= ? GROUP BY rt.id HAVING COUNT(*) = ?)", rooms, guests, from, to, rooms, nights)
+	}
+	if err := db.Order("created_at DESC, id ASC").Offset((page - 1) * limit).Limit(limit).Find(&items).Error; err != nil {
 		return nil, fmt.Errorf("failed to list hotels: %w", err)
 	}
 	return items, nil

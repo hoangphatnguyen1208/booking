@@ -7,12 +7,14 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
+	"time"
 )
 
 type Controller struct{ service *Service }
 
 func NewCController(service *Service) *Controller { return &Controller{service: service} }
 func (c *Controller) RegisterRoutes(api *gin.RouterGroup, requireAuth gin.HandlerFunc) {
+	api.GET("/me/hotels", requireAuth, func(ctx *gin.Context) { ctx.Set("managed_by", ctx.GetString("user_id")); c.List(ctx) })
 	routes := api.Group("/hotels")
 	routes.GET("", c.List)
 	routes.GET("/:id", c.FindByID)
@@ -40,7 +42,32 @@ func (c *Controller) List(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid pagination"})
 		return
 	}
-	items, err := c.service.List(ctx.Request.Context(), page, limit)
+	rank := 0
+	if value := ctx.Query("rank"); value != "" {
+		var parseErr error
+		rank, parseErr = strconv.Atoi(value)
+		if parseErr != nil || rank < 0 || rank > 5 {
+			ctx.JSON(400, gin.H{"error": "Invalid rank"})
+			return
+		}
+	}
+	from, to := ctx.Query("check_in"), ctx.Query("check_out")
+	rooms, guests := 1, 2
+	if value := ctx.Query("rooms"); value != "" {
+		rooms, _ = strconv.Atoi(value)
+	}
+	if value := ctx.Query("guests"); value != "" {
+		guests, _ = strconv.Atoi(value)
+	}
+	if from != "" || to != "" {
+		start, e1 := time.Parse("2006-01-02", from)
+		end, e2 := time.Parse("2006-01-02", to)
+		if e1 != nil || e2 != nil || !end.After(start) || end.Sub(start) > 90*24*time.Hour || rooms < 1 || rooms > 100 || guests < 1 || guests > 2000 {
+			ctx.JSON(400, gin.H{"error": "Invalid availability dates or guests"})
+			return
+		}
+	}
+	items, err := c.service.Search(ctx.Request.Context(), page, limit, ctx.Query("destination"), rank, ctx.GetString("managed_by"), from, to, rooms, guests)
 	if err != nil {
 		if errors.Is(err, permission.ErrForbidden) {
 			ctx.JSON(403, gin.H{"error": "Forbidden"})
@@ -163,6 +190,10 @@ func (c *Controller) Delete(ctx *gin.Context) {
 		return
 	}
 	if err := c.service.DeleteForActor(ctx.Request.Context(), ctx.GetString("user_id"), ctx.Param("id")); err != nil {
+		if errors.Is(err, permission.ErrForbidden) {
+			ctx.JSON(403, gin.H{"error": "Forbidden"})
+			return
+		}
 		if errors.Is(err, ErrHotelNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"error": "Hotel not found"})
 			return

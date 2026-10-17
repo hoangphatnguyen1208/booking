@@ -66,7 +66,7 @@ func TestUpdateDuplicateSlug(t *testing.T) {
 func TestDeleteMissingHotel(t *testing.T) {
 	repo, mock := testRepository(t)
 	mock.ExpectBegin()
-	mock.ExpectExec(`DELETE FROM "hotels"`).WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec(`UPDATE "hotels"`).WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectCommit()
 	if err := repo.Delete(context.Background(), &Hotel{ID: "id"}); !errors.Is(err, ErrHotelNotFound) {
 		t.Fatalf("got %v", err)

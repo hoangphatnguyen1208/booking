@@ -26,6 +26,9 @@ func validateHotel(h *Hotel) error {
 type Service struct{ repo *Repository }
 
 func NewService(repo *Repository) *Service { return &Service{repo: repo} }
+func (s *Service) Search(ctx context.Context, page, limit int, query string, rank int, actor, from, to string, rooms, guests int) ([]Hotel, error) {
+	return s.repo.Search(ctx, page, limit, query, rank, actor, from, to, rooms, guests)
+}
 func (s *Service) List(ctx context.Context, page, limit int) ([]Hotel, error) {
 	return s.repo.List(ctx, page, limit)
 }

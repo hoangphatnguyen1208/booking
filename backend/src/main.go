@@ -2,7 +2,13 @@ package main
 
 import (
 	_ "booking/docs"
+	"context"
+	"errors"
 	"log"
+	"net/http"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"booking/src/config"
 	"booking/src/db"
@@ -47,15 +53,37 @@ func main() {
 	RequireAuth := middleware.RequireAuth(tokens, repo)
 
 	router := gin.Default()
+	_ = router.SetTrustedProxies(nil)
+	router.Use(middleware.BodyLimit(), middleware.AuthLimit())
+	router.Use(middleware.Audit(conn))
+	router.GET("/healthz", func(c *gin.Context) { c.JSON(200, gin.H{"status": "ok"}) })
+	router.GET("/readyz", func(c *gin.Context) {
+		ctx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Second)
+		defer cancel()
+		if sqlDB.PingContext(ctx) != nil {
+			c.JSON(503, gin.H{"status": "unavailable"})
+			return
+		}
+		c.JSON(200, gin.H{"status": "ready"})
+	})
 	api := router.Group("/api/v1")
 	controller.RegisterRoutes(api, RequireAuth)
 	hotel.NewCController(hotel.NewService(hotel.NewRepository(conn))).RegisterRoutes(api, RequireAuth)
 	lodging.New(conn).RegisterRoutes(api, RequireAuth)
 
 	swaggerui.RegisterRoutes(router)
-	log.Println("Connected to the database successfully:", conn)
+	log.Println("Database ready")
 
-	if err := router.Run(":8080"); err != nil {
-		log.Fatalf("failed to run server: %v", err)
-	}
+	server := &http.Server{Addr: env.ServerAddr, Handler: router, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 20 * time.Second, WriteTimeout: 30 * time.Second, IdleTimeout: 60 * time.Second}
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+	go func() {
+		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Fatalf("server: %v", err)
+		}
+	}()
+	<-ctx.Done()
+	shutdown, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	_ = server.Shutdown(shutdown)
 }

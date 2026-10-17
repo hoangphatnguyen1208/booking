@@ -1,6 +1,9 @@
 package hotel
 
-import "time"
+import (
+	"gorm.io/gorm"
+	"time"
+)
 
 type Hotel struct {
 	ID string `json:"id" gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
@@ -13,6 +16,7 @@ type Hotel struct {
 	Country string `json:"country" gorm:"type:varchar(100);not null"`
 	Rank    uint   `json:"rank" gorm:"type:smallint;not null"`
 
-	CreatedAt time.Time `json:"created_at" gorm:"autoCreateTime"`
-	UpdatedAt time.Time `json:"updated_at" gorm:"autoUpdateTime"`
+	CreatedAt time.Time      `json:"created_at" gorm:"autoCreateTime"`
+	UpdatedAt time.Time      `json:"updated_at" gorm:"autoUpdateTime"`
+	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
 }

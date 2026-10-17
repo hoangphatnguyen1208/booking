@@ -61,7 +61,7 @@ func (s *Service) Book(ctx context.Context, actor, key string, in BookingInput) 
 			return fail(409, "Room is unavailable or guest capacity exceeded")
 		}
 		var h hotel.Hotel
-		if err := tx.First(&h, "id = ?", room.HotelID).Error; err != nil {
+		if err := tx.Clauses(clause.Locking{Strength: "SHARE"}).First(&h, "id = ?", room.HotelID).Error; err != nil {
 			return fail(404, "Hotel is unavailable")
 		}
 		rows := []Inventory{}
@@ -162,4 +162,26 @@ func (s *Service) Cancel(ctx context.Context, actor, id string) (*Booking, error
 		return nil
 	})
 	return &result, err
+}
+
+func (s *Service) Complete(ctx context.Context, actor, id string) error {
+	var booking Booking
+	if err := s.DB.WithContext(ctx).First(&booking, "id = ?", id).Error; err != nil {
+		return dbError(err)
+	}
+	if err := permission.New(s.DB).Require(ctx, actor, booking.HotelID, "edit"); err != nil {
+		return err
+	}
+	location, _ := time.LoadLocation("Asia/Ho_Chi_Minh")
+	if booking.CheckOut[:10] > time.Now().In(location).Format("2006-01-02") {
+		return fail(409, "Stay has not ended")
+	}
+	result := s.DB.WithContext(ctx).Model(&Booking{}).Where("id = ? AND status = ?", id, "confirmed").Updates(map[string]any{"status": "completed", "payment_status": "paid"})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return fail(409, "Booking is not confirmed")
+	}
+	return nil
 }
