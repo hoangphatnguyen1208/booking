@@ -1,4 +1,5 @@
 # Local configuration and secrets
+/backups/
 .env
 .env.*
 !.env.example
