@@ -1,82 +1,69 @@
-# Frontend build and implementation guide
+# Kế hoạch xây dựng frontend
 
-The frontend is implemented with React, TypeScript, and Vite. It includes a Vietnamese responsive interface, authentication through the existing backend, a sample hotel collection, local favorites, detail dialogs, and clear placeholders for booking features that do not yet have backend APIs.
+## Mục tiêu và cấu trúc
 
-## Run locally
+Dùng React + TypeScript + Vite, giao diện tiếng Việt responsive. Chia code thành API client, kiểu dữ liệu, components dùng chung và features: auth, hotels, rooms, bookings, management, admin.
 
-Prerequisites: Node.js 22.12+ (Node 24.16 was used for verification), npm, and the backend for authentication.
+Tách component màn hình và nghiệp vụ khỏi App khi module mở rộng. Có điều hướng URL để tải lại, chia sẻ và dùng nút back/forward; route guard chỉ hỗ trợ UX, backend vẫn kiểm tra quyền.
 
-```powershell
-Set-Location D:\booking\frontend
-npm ci
-npm run dev
-```
+## Màn hình khách hàng
 
-Open the local URL printed by Vite, normally `http://localhost:5173`. In another terminal, run the backend:
+| Màn hình | Nội dung mục tiêu | Phụ thuộc backend |
+| --- | --- | --- |
+| Khám phá/tìm kiếm | Điểm đến, ngày, khách/phòng, filters, phân trang | Hotel search và availability |
+| Chi tiết khách sạn | Ảnh, địa chỉ, tiện nghi, hạng sao, loại phòng | Hotel detail và room types |
+| Chọn phòng | Sức chứa, số phòng, giá từng đêm và tổng | Availability và pricing |
+| Đăng ký/đăng nhập | Form, validation, lỗi, session | Identity |
+| Checkout | Thông tin khách, đơn dự kiến, chính sách và xác nhận | Booking create |
+| Xác nhận đơn | Mã đơn, ngày, phòng, giá và trạng thái | Booking detail |
+| Chuyến đi của tôi | Danh sách, lọc trạng thái, chi tiết, hủy | My bookings và cancellation |
+| Đã lưu | Danh sách yêu thích, xử lý khách sạn ngừng bán | Hotel detail; favorites API nếu thêm đồng bộ |
+| Hồ sơ | Thông tin người dùng, bảo mật, đăng xuất | Profile và session |
 
-```powershell
-Set-Location D:\booking\backend
-go run ./src
-```
+Không hiển thị giá/đánh giá tự tạo khi API thiếu dữ liệu. Phân biệt hạng sao khách sạn với điểm đánh giá khách hàng. Hiển thị rõ nếu chưa có giá hoặc chưa mở bán.
 
-Vite proxies `/api/v1` to `http://localhost:8080` for development and local preview. The current backend uses `/api/v1/auth/register`, `/api/v1/auth/login`, and `/api/v1/auth/me`. A running PostgreSQL instance and `backend/.env` are required for the backend.
+## Màn hình quản lý khách sạn
 
-## Implemented behavior
+- Danh sách khách sạn được gán quyền, form tạo/sửa và trạng thái công bố.
+- Ảnh, tiện nghi và loại phòng.
+- Lịch giá/tồn kho theo ngày; cảnh báo khi giảm capacity dưới lượng đã đặt.
+- Danh sách đơn, lọc theo ngày/trạng thái và chi tiết khách.
+- Xác nhận trước các thao tác hủy/xóa/lưu trữ có tác động.
+- Xử lý 401/403/404/409; không hiển thị thành công khi backend từ chối.
 
-| Feature | Data source / behavior |
-| --- | --- |
-| Registration | POST `/api/v1/auth/register`; checks minimum 8 Unicode characters and maximum 72 UTF-8 bytes; signs in separately afterward |
-| Login | POST `/api/v1/auth/login`; handles invalid credentials, connection errors, and pending requests |
-| Profile | GET `/api/v1/auth/me` with the bearer token; retry for failed requests |
-| Session | Access token in memory; expiry or HTTP 401 clears session; reload requires signing in again |
-| Logout | Clears client token and profile; backend has no revocation/logout endpoint |
-| Discovery | Three explicitly labeled sample properties, destination filtering, and category filters |
-| Favorites | Sample property IDs persisted in localStorage on this device, independent of account |
-| Detail | Accessible native modal; sample information and save action |
-| Trips | Explains that reservations/history are not yet available |
+## Màn hình quản trị
 
-Dates are validated, but search does not check room availability or guest capacity. Sample prices and ratings are illustrative. There is no real reservation or payment flow, and no hotel data is fetched from an invented endpoint.
+- Người dùng và vai trò; cấp/thu hồi quyền chủ khách sạn.
+- Kiểm duyệt và trạng thái khách sạn.
+- Danh sách đơn theo phạm vi được phép, audit log và chỉ số vận hành.
+- Không triển khai quản trị chỉ bằng việc ẩn/hiện nút theo localStorage.
 
-## Structure
+## Tích hợp dữ liệu
 
-```text
-frontend/
-  src/
-    App.tsx             Navigation, discovery, profile, authentication dialogs
-    App.css             Responsive layout and CSS illustrations
-    index.css           Base styles and keyboard focus indicators
-    api.ts              Typed API requests, timeout, cancellation, error handling
-    catalog.ts          Explicit sample data, formatting, saved IDs
-    main.tsx            React entry point
-  tests/booking.spec.ts  Browser integration tests with mocked API responses
-  playwright.config.ts  Desktop and mobile Chromium test projects
-  vite.config.ts        Development and preview API proxy
-  .env.example          Public API URL example
-```
+- API base URL theo môi trường; development proxy và production reverse proxy.
+- Client typed, timeout/cancellation, parse lỗi và xử lý session hết hạn.
+- Search/filter trên server, đồng bộ query vào URL.
+- Cache và invalidation sau tạo/sửa/hủy; không để dữ liệu cũ báo thành công.
+- Favorites local ở MVP; dùng UUID, xử lý bản ghi bị xóa và xác định cách đồng bộ khi nâng cấp.
+- Idempotency key cho gửi đơn; giữ nguyên key khi retry cùng payload.
+- Sau lỗi timeout tạo đơn, kiểm tra trạng thái theo key trước khi gửi đơn mới.
+- Giá checkout được backend xác nhận lại; nếu thay đổi, yêu cầu khách duyệt lại trước khi đặt.
 
-## Configuration and production build
+## UX và accessibility
 
-The default API base is `/api/v1`. To override it, copy `.env.example` to `.env` and change `VITE_API_BASE_URL`. This is public, build-time configuration. Do not place backend secrets or database credentials in frontend environment variables.
+Mỗi màn hình có loading, empty, error, retry và success state. Form giữ dữ liệu khi lỗi; tránh submit lặp; thông báo tại đúng màn hình. Modal quản lý focus, Escape và khôi phục focus.
 
-```powershell
-npm run build
-npm run preview
-```
+Hỗ trợ bàn phím, label cho input, thông báo screen reader, tương phản dễ đọc, touch target phù hợp và reduced motion. Kiểm tra bố cục mobile/tablet/desktop và nội dung dài.
 
-Output is `frontend/dist`. Production hosting must serve those files and forward `/api/v1` to the Go backend using a reverse proxy. Vite's local proxy is not bundled into the production assets. If using an absolute API URL on a different origin, configure backend CORS for that origin. Build again after changing the public API URL.
+## Kiểm thử
 
-## Verification
+- Form đăng ký/đăng nhập, token hết hạn, retry và quyền truy cập.
+- Search, pagination, empty result, ảnh lỗi và hotel detail 404.
+- CRUD hotel/room với conflict và forbidden.
+- Checkout: validation, giá thay đổi, hết phòng, submit lặp và timeout.
+- Lịch sử/hủy đơn: quá hạn, lỗi mạng, trạng thái sau hủy.
+- Test desktop/mobile với API mock; thêm luồng end-to-end với backend/PostgreSQL thật trên staging.
 
-```powershell
-npm run lint
-npx playwright install chromium
-npm test
-```
+## Tiêu chí hoàn thành frontend
 
-The 14 browser checks cover desktop/mobile rendering, search and empty results, category filtering, favorite persistence, detail dialogs, registration/password validation, login/profile/bearer headers/logout, invalid credentials, connection failure, HTTP 401, and token expiry. API responses are mocked, so these checks do not prove database-backed authentication works. Run registration and login against the real local backend before deployment.
-
-Use `npm run format` to format source and tests. Test screenshots and traces are generated under `frontend/test-results` and ignored by Git.
-
-## Next integration
-
-Replace `catalog.ts` with a real hotel API adapter after hotel routes and response contracts exist. Then add rooms, date/guest availability, reservation creation, and reservation history. The server must own availability, prices, and authorization. Keep loading, failure, and empty states when replacing sample data.
+Không còn dùng dữ liệu minh họa cho tính năng đã mở; toàn bộ luồng MVP tích hợp API, URL điều hướng đúng, trạng thái lỗi đầy đủ, build/lint/test qua và luồng chính được kiểm chứng trên staging.

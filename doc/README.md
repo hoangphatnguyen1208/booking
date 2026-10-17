@@ -1,31 +1,39 @@
-# Booking system documentation
+# Kế hoạch phát triển dự án Booking
 
-This folder describes how to build and run the existing backend (BE), and how to implement the frontend (FE) and remaining booking features. Paths and commands assume the repository root is `D:\booking`; adjust it for your checkout.
+Thư mục này là bản kế hoạch cho toàn bộ hệ thống đặt phòng khách sạn: mục tiêu sản phẩm, nghiệp vụ, kiến trúc, dữ liệu, backend, frontend và lộ trình triển khai. Các mô tả bên dưới là thiết kế mục tiêu và công việc cần thực hiện; không phải báo cáo những tính năng đã có.
 
-- [Backend build and development guide](backend.md)
-- [Frontend build and implementation guide](frontend.md)
+## Đọc kế hoạch
 
-## Current system
-
-| Component | Current state |
+| Tài liệu | Nội dung |
 | --- | --- |
-| Backend | Go API using Gin, GORM, PostgreSQL, bcrypt, and JWT |
-| Authentication | Registration, login, Swagger token form, and authenticated profile endpoint |
-| Hotels | Database model, repository, and create service; no HTTP routes registered |
-| Frontend | React + TypeScript + Vite; Vietnamese responsive UI, real authentication integration, and a clearly labeled sample hotel collection |
-| Booking | No rooms, availability, reservations, or payment implementation |
-| API documentation | Generated Swagger files in `backend/docs` |
+| [Phạm vi sản phẩm](product.md) | Người dùng, luồng nghiệp vụ, quy tắc đặt/hủy phòng và giới hạn MVP |
+| [Kiến trúc và dữ liệu](architecture.md) | Các module, mô hình dữ liệu, tồn phòng, tiền và thời gian |
+| [Kế hoạch backend](backend.md) | Công việc theo module, transaction, bảo mật và kiểm thử |
+| [Kế hoạch frontend](frontend.md) | Màn hình, trạng thái, tích hợp API và kiểm thử giao diện |
+| [Kế hoạch API](api-plan.md) | Hợp đồng API dự kiến và quyền truy cập |
+| [Lộ trình triển khai](roadmap.md) | Thứ tự phụ thuộc, đầu ra và tiêu chí hoàn thành từng giai đoạn |
 
-The current request path is `Gin router -> controller -> service -> repository -> PostgreSQL`. JWT middleware protects `/api/v1/auth/me`. Startup loads `backend/.env`, connects to PostgreSQL, migrates the user and hotel tables, then listens on port 8080.
+## Định hướng
 
-## Implementation sequence
+Xây dựng hệ thống cho khách tìm khách sạn, kiểm tra phòng theo ngày và số khách, đặt phòng, xem và hủy đơn; chủ khách sạn quản lý cơ sở của mình; quản trị viên quản lý toàn hệ thống.
 
-1. Build and run the backend with a local database; verify authentication.
-2. Run the frontend and verify registration, login, and profile against the backend at `/api/v1/auth`.
-3. Complete hotel controllers, validation, list/search/detail endpoints, and admin authorization before exposing hotel writes.
-4. Add rooms, inventory, date-based availability, and reservation models and APIs. Define prices, currency, cancellation rules, and booking statuses before implementation.
-5. Build search, hotel details, booking confirmation, and reservation history screens against those APIs.
-6. Verify concurrent reservations cannot oversell inventory, unauthorized users cannot access another user's bookings, and both builds pass before deployment.
+Tiếp tục dùng Go/Gin/GORM/PostgreSQL cho backend và React/TypeScript/Vite cho frontend. Triển khai theo kiến trúc monolith chia module để hoàn thành nghiệp vụ trước khi cân nhắc tách dịch vụ.
 
-Steps 3–6 are planned work. Endpoint names and data contracts for those features must be agreed and documented before the frontend integrates them.
+MVP tập trung vào đặt phòng có tồn kho chính xác và thanh toán tại khách sạn. Thanh toán trực tuyến, đánh giá, khuyến mãi và thông báo tự động là các giai đoạn tiếp theo.
 
+## Những quyết định cần chốt trước khi xây module tương ứng
+
+- Danh mục vai trò và cách cấp quyền chủ khách sạn.
+- Tiền tệ của từng khách sạn; tiền tệ mặc định của MVP.
+- Chính sách hủy, hạn hủy và phí hủy.
+- Đặt phòng tại khách sạn được xác nhận ngay hay cần chủ khách sạn duyệt.
+- Thời hạn giữ phòng nếu bổ sung thanh toán trực tuyến.
+- Nguồn lưu ảnh và môi trường triển khai.
+
+Các tài liệu đưa ra phương án mặc định để triển khai: tồn kho theo loại phòng/ngày, xác nhận ngay cho thanh toán tại khách sạn, và chính sách hủy được lưu cùng đơn. Những quyết định trên cần được xác nhận trước khi phát hành tính năng liên quan.
+
+## Định nghĩa hoàn thành
+
+Một module hoàn thành khi có quy tắc nghiệp vụ và hợp đồng API rõ ràng, backend kiểm tra quyền và dữ liệu, frontend tích hợp đầy đủ trạng thái, test kiểm chứng tình huống quan trọng và dữ liệu thực được xác minh trên PostgreSQL.
+
+Một bản phát hành hoàn thành khi toàn bộ luồng tìm phòng → đặt → xem đơn → hủy hoạt động, không bán vượt tồn phòng khi đặt đồng thời, có migration và phương án vận hành/khôi phục dữ liệu.
