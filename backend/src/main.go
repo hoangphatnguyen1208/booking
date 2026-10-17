@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -54,6 +55,11 @@ func main() {
 
 	router := gin.Default()
 	_ = router.SetTrustedProxies(nil)
+	if env.TrustedProxies != "" {
+		if err := router.SetTrustedProxies(strings.Split(env.TrustedProxies, ",")); err != nil {
+			log.Fatal("Invalid TRUSTED_PROXIES")
+		}
+	}
 	router.Use(middleware.BodyLimit(), middleware.AuthLimit())
 	router.Use(middleware.Audit(conn))
 	router.GET("/healthz", func(c *gin.Context) { c.JSON(200, gin.H{"status": "ok"}) })

@@ -11,6 +11,7 @@ type Env struct {
 	JwtSecret      string `mapstructure:"JWT_SECRET"`
 	JwtExpiresTime int    `mapstructure:"JWT_EXPIRE_TIME"`
 	ServerAddr     string `mapstructure:"SERVER_ADDR"`
+	TrustedProxies string `mapstructure:"TRUSTED_PROXIES"`
 }
 
 func NewEnv() *Env {
@@ -18,7 +19,7 @@ func NewEnv() *Env {
 	v.SetConfigFile(".env")
 	v.SetDefault("JWT_EXPIRE_TIME", 3600)
 	v.SetDefault("SERVER_ADDR", ":8080")
-	for _, key := range []string{"DB_STR", "JWT_SECRET", "JWT_EXPIRE_TIME", "SERVER_ADDR"} {
+	for _, key := range []string{"DB_STR", "JWT_SECRET", "JWT_EXPIRE_TIME", "SERVER_ADDR", "TRUSTED_PROXIES"} {
 		if err := v.BindEnv(key); err != nil {
 			log.Fatal("Cannot bind configuration")
 		}

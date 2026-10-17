@@ -1,6 +1,7 @@
 package db
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"embed"
 	"fmt"
@@ -36,6 +37,7 @@ func Migrate(conn *gorm.DB) error {
 			if err != nil {
 				return err
 			}
+			data = bytes.ReplaceAll(data, []byte("\r\n"), []byte("\n"))
 			checksum := fmt.Sprintf("%x", sha256.Sum256(data))
 			var rows []schemaMigration
 			if err := tx.Where("version = ?", name.Name()).Find(&rows).Error; err != nil {
