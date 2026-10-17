@@ -4,6 +4,22 @@ export type User = {
   created_at: string;
   updated_at: string;
 };
+export type Hotel = {
+  id: string;
+  name: string;
+  slug: string;
+  address: string;
+  city: string;
+  country: string;
+  rank: number;
+  created_at: string;
+  updated_at: string;
+};
+export type HotelInput = Pick<
+  Hotel,
+  "name" | "slug" | "address" | "city" | "country" | "rank"
+>;
+export type HotelList = { items: Hotel[]; page: number; limit: number };
 export type TokenResponse = {
   access_token: string;
   token_type: string;
@@ -48,7 +64,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
           ? "Email hoặc mật khẩu không đúng."
           : "Thông tin không hợp lệ. Vui lòng kiểm tra lại.",
       401: "Phiên đăng nhập không còn hợp lệ.",
-      409: "Email này đã được đăng ký.",
+      404: "Khách sạn không còn tồn tại.",
+      409: path.startsWith("/hotels")
+        ? "Slug khách sạn đã tồn tại."
+        : "Email này đã được đăng ký.",
       429: "Bạn đã thử quá nhiều lần. Vui lòng thử lại sau.",
     };
     throw new ApiError(
@@ -64,6 +83,27 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   }
 }
 export const api = {
+  hotels: (page = 1, signal?: AbortSignal) =>
+    request<HotelList>(`/hotels?page=${page}&limit=20`, { signal }),
+  hotel: (id: string, signal?: AbortSignal) =>
+    request<Hotel>(`/hotels/${encodeURIComponent(id)}`, { signal }),
+  createHotel: (token: string, input: HotelInput) =>
+    request<Hotel>("/hotels", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(input),
+    }),
+  updateHotel: (token: string, id: string, input: HotelInput) =>
+    request<Hotel>(`/hotels/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(input),
+    }),
+  deleteHotel: (token: string, id: string) =>
+    request<{ message: string }>(`/hotels/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    }),
   register: (email: string, password: string, signal?: AbortSignal) =>
     request<User>("/auth/register", {
       method: "POST",

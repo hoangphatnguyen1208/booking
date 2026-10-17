@@ -1,6 +1,57 @@
 import { test, expect } from "@playwright/test";
 import type { Page } from "@playwright/test";
 
+const hotels = [
+  {
+    id: "11111111-1111-1111-1111-111111111111",
+    name: "An Nhiên Retreat",
+    slug: "an-nhien",
+    city: "Đà Lạt",
+    country: "VN",
+    address: "Rừng thông",
+    rank: 3,
+    created_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-01-01T00:00:00Z",
+  },
+  {
+    id: "22222222-2222-2222-2222-222222222222",
+    name: "The Coast House",
+    slug: "coast",
+    city: "Đà Nẵng",
+    country: "VN",
+    address: "Bên biển",
+    rank: 4,
+    created_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-01-01T00:00:00Z",
+  },
+  {
+    id: "33333333-3333-3333-3333-333333333333",
+    name: "Mây Boutique Stay",
+    slug: "may",
+    city: "Hội An",
+    country: "VN",
+    address: "Phố cổ",
+    rank: 5,
+    created_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-01-01T00:00:00Z",
+  },
+];
+test.beforeEach(async ({ page }) => {
+  await page.route("**/api/v1/hotels?*", (route) =>
+    route.fulfill({ json: { items: hotels, page: 1, limit: 20 } }),
+  );
+  await page.route("**/api/v1/hotels/*", (route) => {
+    const hotel = hotels.find((item) =>
+      route.request().url().endsWith(item.id),
+    );
+    return route.fulfill(
+      hotel
+        ? { json: hotel }
+        : { status: 404, json: { error: "Hotel not found" } },
+    );
+  });
+});
+
 const user = {
   id: "test-user",
   email: "guest@example.com",
@@ -25,7 +76,7 @@ test("search, category, favorite persistence and detail dialog", async ({
       () => document.documentElement.scrollWidth <= window.innerWidth,
     ),
   ).toBe(true);
-  await page.getByRole("button", { name: "Gần biển", exact: true }).click();
+  await page.getByRole("button", { name: "4 sao", exact: true }).click();
   await expect(page.locator(".stay-card")).toHaveCount(1);
   await page
     .getByRole("button", { name: "Lưu The Coast House", exact: true })
@@ -167,8 +218,179 @@ test("token expiry requires signing in again", async ({ page }) => {
 });
 test("desktop and mobile preview", async ({ page }, testInfo) => {
   await page.goto("/");
+  await expect(page.locator(".stay-card")).toHaveCount(3);
   await page.screenshot({
     path: `test-results/${testInfo.project.name}-home.png`,
     fullPage: true,
   });
+});
+
+test("hotel list failure can retry and empty database stays empty", async ({
+  page,
+}) => {
+  await page.route("**/api/v1/hotels?*", (route) => route.abort());
+  await page.goto("/");
+  await expect(page.getByRole("alert")).toContainText("Không kết nối");
+  await expect(page.locator(".stay-card")).toHaveCount(0);
+  await page.route("**/api/v1/hotels?*", (route) =>
+    route.fulfill({ json: { items: [], page: 1, limit: 20 } }),
+  );
+  await page.getByRole("button", { name: "Thử lại", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Chưa tìm thấy nơi phù hợp" }),
+  ).toBeVisible();
+  await expect(page.locator(".stay-card")).toHaveCount(0);
+});
+
+test("management creates updates and deletes using authenticated API", async ({
+  page,
+}) => {
+  let collection = [...hotels];
+  let method = "";
+  let header = "";
+  let body: Record<string, unknown> = {};
+  await page.route("**/api/v1/hotels?*", (route) =>
+    route.fulfill({ json: { items: collection, page: 1, limit: 20 } }),
+  );
+  await page.route("**/api/v1/auth/login", (route) =>
+    route.fulfill({
+      json: {
+        access_token: "test-token",
+        token_type: "Bearer",
+        expires_in: 3600,
+      },
+    }),
+  );
+  await page.route("**/api/v1/auth/me", (route) =>
+    route.fulfill({ json: user }),
+  );
+  await page.route("**/api/v1/hotels", async (route) => {
+    method = route.request().method();
+    header = route.request().headers().authorization;
+    body = route.request().postDataJSON();
+    const hotel = {
+      ...hotels[0],
+      ...body,
+      id: "44444444-4444-4444-4444-444444444444",
+    };
+    collection = [hotel, ...collection];
+    await route.fulfill({ status: 201, json: hotel });
+  });
+  await page.route(
+    "**/api/v1/hotels/44444444-4444-4444-4444-444444444444",
+    async (route) => {
+      method = route.request().method();
+      header = route.request().headers().authorization;
+      if (method === "DELETE") {
+        collection = collection.filter(
+          (hotel) => hotel.id !== "44444444-4444-4444-4444-444444444444",
+        );
+        await route.fulfill({ json: { message: "deleted" } });
+      } else {
+        body = route.request().postDataJSON();
+        const hotel = { ...collection[0], ...body };
+        collection = [hotel, ...collection.slice(1)];
+        await route.fulfill({ json: hotel });
+      }
+    },
+  );
+  await page.goto("/");
+  await login(page);
+  await page.getByRole("button", { name: "Quản lý", exact: true }).click();
+  await page.getByLabel("Tên khách sạn", { exact: true }).fill("Hotel mới");
+  await page.getByLabel("Slug", { exact: true }).fill("hotel-moi");
+  await page.getByLabel("Thành phố", { exact: true }).fill("Huế");
+  await page.getByLabel("Quốc gia", { exact: true }).fill("VN");
+  await page
+    .getByRole("button", { name: "Tạo khách sạn", exact: true })
+    .click();
+  await expect(
+    page.getByRole("status").filter({ hasText: "Đã tạo" }),
+  ).toContainText("Đã tạo");
+  expect(method).toBe("POST");
+  expect(header).toBe("Bearer test-token");
+  await page
+    .getByRole("button", { name: "Sửa Hotel mới", exact: true })
+    .click();
+  await page.getByLabel("Tên khách sạn", { exact: true }).fill("Hotel sửa");
+  await page.getByRole("button", { name: "Lưu thay đổi", exact: true }).click();
+  await expect(
+    page.getByRole("status").filter({ hasText: "Đã cập nhật" }),
+  ).toContainText("Đã cập nhật");
+  expect(method).toBe("PUT");
+  expect(body.address).toBe("");
+  expect(body.rank).toBe(0);
+  await page
+    .getByRole("button", { name: "Xóa Hotel sửa", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Xác nhận xóa" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Xác nhận xóa" }).click();
+  await expect(
+    page.getByRole("status").filter({ hasText: "Đã xóa" }),
+  ).toContainText("Đã xóa");
+  expect(method).toBe("DELETE");
+  expect(header).toBe("Bearer test-token");
+  await expect(
+    page.getByRole("button", { name: "Xóa Hotel sửa", exact: true }),
+  ).toHaveCount(0);
+});
+
+test("hotel pagination requests the next API page", async ({ page }) => {
+  await page.route("**/api/v1/hotels?*", (route) => {
+    const number = Number(
+      new URL(route.request().url()).searchParams.get("page"),
+    );
+    return route.fulfill({
+      json: {
+        items:
+          number === 1
+            ? Array.from({ length: 20 }, (_, i) => ({
+                ...hotels[0],
+                id: `11111111-1111-1111-1111-${String(i).padStart(12, "0")}`,
+              }))
+            : [hotels[1]],
+        page: number,
+        limit: 20,
+      },
+    });
+  });
+  await page.goto("/");
+  await expect(page.locator(".stay-card")).toHaveCount(20);
+  await page.getByRole("button", { name: "Trang sau →", exact: true }).click();
+  await expect(page.locator(".stay-card")).toHaveCount(1);
+  await expect(
+    page.getByRole("button", { name: "The Coast House ↗" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Trang sau →", exact: true }),
+  ).toBeDisabled();
+});
+
+test("deleted saved hotels are skipped and detail 404 is visible", async ({
+  page,
+}) => {
+  await page.addInitScript(() =>
+    localStorage.setItem(
+      "booking.saved",
+      JSON.stringify(["11111111-1111-1111-1111-111111111111"]),
+    ),
+  );
+  await page.route(
+    "**/api/v1/hotels/11111111-1111-1111-1111-111111111111",
+    (route) =>
+      route.fulfill({ status: 404, json: { error: "Hotel not found" } }),
+  );
+  await page.goto("/");
+  await page.getByRole("button", { name: "An Nhiên Retreat ↗" }).click();
+  await expect(page.getByRole("dialog").getByRole("alert")).toContainText(
+    "không còn tồn tại",
+  );
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: /Đã lưu/ }).click();
+  await expect(
+    page.getByRole("heading", { name: "Chưa có nơi nào được lưu" }),
+  ).toBeVisible();
+  await expect(page.locator(".stay-card")).toHaveCount(0);
 });

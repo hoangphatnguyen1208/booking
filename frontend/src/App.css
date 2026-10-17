@@ -1109,3 +1109,77 @@ dialog .stay-art {
     scroll-behavior: auto !important;
   }
 }
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  margin: 24px 0;
+  font-size: 12px;
+}
+.hotel-form {
+  max-width: none;
+  margin-bottom: 28px;
+}
+.hotel-form fieldset {
+  border: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.hotel-form label {
+  font-size: 12px;
+}
+.hotel-form input,
+.hotel-form select {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 11px;
+  border: 1px solid #d9e4d9;
+  border-radius: 7px;
+  background: #fafcf9;
+  color: #294438;
+}
+.management-list article {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid #d9e4d9;
+  padding: 18px 0;
+}
+.management-list article > div {
+  flex: 1;
+  min-width: 180px;
+}
+.management-list p {
+  color: #647d68;
+  font-size: 12px;
+  margin: 6px 0;
+}
+.delete-confirm {
+  padding: 20px;
+  border: 1px solid #d8a594;
+  border-radius: 10px;
+  background: #fff0eb;
+  margin-bottom: 20px;
+}
+.delete-confirm button {
+  margin-right: 10px;
+}
+@media (max-width: 760px) {
+  .hotel-form fieldset {
+    grid-template-columns: 1fr;
+  }
+  .nav-item {
+    font-size: 9px;
+    gap: 3px;
+  }
+  .management-list .outline {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+}

@@ -2,16 +2,18 @@ import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { api, ApiError } from "./api";
 import type { User } from "./api";
-import { stays, money, localDate, readSaved } from "./catalog";
+import { toStay, localDate, readSaved } from "./catalog";
+import HotelManager from "./HotelManager";
 import type { Stay } from "./catalog";
 import "./App.css";
 
-type Page = "explore" | "saved" | "trips" | "profile";
+type Page = "explore" | "saved" | "trips" | "profile" | "manage";
 const navigation = [
   ["explore", "⌘", "Khám phá"],
   ["saved", "♡", "Đã lưu"],
   ["trips", "▤", "Chuyến đi của tôi"],
   ["profile", "◎", "Tài khoản"],
+  ["manage", "⌂", "Quản lý"],
 ] as const;
 function Artwork({ stay }: { stay: Stay }) {
   return (
@@ -28,6 +30,84 @@ function Artwork({ stay }: { stay: Stay }) {
 export default function App() {
   const [page, setPage] = useState<Page>("explore");
   const [saved, setSaved] = useState(readSaved);
+  const [stays, setStays] = useState<Stay[]>([]);
+  const [savedStays, setSavedStays] = useState<Stay[]>([]);
+  const [hotelPage, setHotelPage] = useState(1);
+  const [hasNext, setHasNext] = useState(false);
+  const [hotelsLoading, setHotelsLoading] = useState(true);
+  const [hotelsError, setHotelsError] = useState("");
+  const [reload, setReload] = useState(0);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState("");
+  const detailRequest = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    async function load() {
+      setHotelsLoading(true);
+      setHotelsError("");
+      try {
+        if (page === "saved") {
+          const results = await Promise.all(
+            saved.map(async (id) => {
+              try {
+                return toStay(await api.hotel(id, controller.signal));
+              } catch (error) {
+                if (error instanceof ApiError && error.status === 404)
+                  return null;
+                throw error;
+              }
+            }),
+          );
+          if (!controller.signal.aborted)
+            setSavedStays(
+              results.filter((stay): stay is Stay => stay !== null),
+            );
+        } else {
+          const result = await api.hotels(hotelPage, controller.signal);
+          if (!controller.signal.aborted) {
+            setStays(result.items.map(toStay));
+            setHasNext(result.items.length === result.limit);
+          }
+        }
+      } catch (error) {
+        if (!controller.signal.aborted)
+          setHotelsError(
+            error instanceof Error
+              ? error.message
+              : "Không tải được khách sạn.",
+          );
+      } finally {
+        if (!controller.signal.aborted) setHotelsLoading(false);
+      }
+    }
+    if (page === "explore" || page === "saved") void load();
+    return () => controller.abort();
+  }, [hotelPage, reload, page, saved]);
+  useEffect(() => () => detailRequest.current?.abort(), []);
+  async function openDetail(stay: Stay) {
+    detailRequest.current?.abort();
+    const controller = new AbortController();
+    detailRequest.current = controller;
+    setDetail(stay);
+    setDetailLoading(true);
+    setDetailError("");
+    try {
+      const hotel = await api.hotel(stay.id, controller.signal);
+      if (!controller.signal.aborted) setDetail(toStay(hotel));
+    } catch (error) {
+      if (!controller.signal.aborted)
+        setDetailError(
+          error instanceof Error ? error.message : "Không tải được chi tiết.",
+        );
+    } finally {
+      if (!controller.signal.aborted) setDetailLoading(false);
+    }
+  }
+  function closeDetail() {
+    detailRequest.current?.abort();
+    setDetail(null);
+  }
   const [category, setCategory] = useState("Tất cả");
   const [destination, setDestination] = useState("");
   const [query, setQuery] = useState("");
@@ -178,7 +258,7 @@ export default function App() {
     setQuery(destination.trim());
     setCategory("Tất cả");
   }
-  function toggleSaved(id: number) {
+  function toggleSaved(id: string) {
     setSaved((current) =>
       current.includes(id)
         ? current.filter((value) => value !== id)
@@ -191,7 +271,7 @@ export default function App() {
     setQuery("");
     setCategory("Tất cả");
   }
-  const visible = stays.filter(
+  const visible = (page === "saved" ? savedStays : stays).filter(
     (stay) =>
       (page !== "saved" || saved.includes(stay.id)) &&
       (page === "saved" ||
@@ -382,15 +462,12 @@ export default function App() {
                   <h2>Một nơi dành cho bạn</h2>
                   <p>Những không gian nhỏ, cho những trải nghiệm lớn.</p>
                 </div>
-                <span className="sample-badge">Bộ sưu tập minh họa</span>
+                <span className="sample-badge">
+                  Khách sạn · trang {hotelPage}
+                </span>
               </div>
               <div className="filters" aria-label="Loại nơi ở">
-                {[
-                  "Tất cả",
-                  "Giữa thiên nhiên",
-                  "Gần biển",
-                  "Trong thành phố",
-                ].map((item, index) => (
+                {["Tất cả", "3 sao", "4 sao", "5 sao"].map((item, index) => (
                   <button
                     key={item}
                     className={category === item ? "selected" : ""}
@@ -411,70 +488,122 @@ export default function App() {
               <div>
                 <span className="eyebrow dark">CHO CHUYẾN ĐI TIẾP THEO</span>
                 <h1>Những nơi bạn yêu thích</h1>
-                <p>Bộ sưu tập minh họa bạn đã lưu trên thiết bị này.</p>
+                <p>Khách sạn bạn đã lưu trên thiết bị này.</p>
               </div>
               <span className="sample-badge">{saved.length} nơi đã lưu</span>
             </div>
           )}
           {(page === "explore" || page === "saved") && (
             <>
-              <div className="stay-grid">
-                {visible.map((stay) => (
-                  <article className="stay-card" key={stay.id}>
-                    <div className="art-wrapper">
-                      <Artwork stay={stay} />
-                      <span className="stay-tag">{stay.category}</span>
-                      <button
-                        className={`save-button ${saved.includes(stay.id) ? "is-saved" : ""}`}
-                        aria-label={`${saved.includes(stay.id) ? "Bỏ lưu" : "Lưu"} ${stay.name}`}
-                        aria-pressed={saved.includes(stay.id)}
-                        onClick={() => toggleSaved(stay.id)}
-                      >
-                        {saved.includes(stay.id) ? "♥" : "♡"}
+              {hotelsLoading && <p role="status">Đang tải khách sạn…</p>}
+              {hotelsError && (
+                <div className="empty-state">
+                  <p className="error" role="alert">
+                    {hotelsError}
+                  </p>
+                  <button
+                    className="outline"
+                    onClick={() => setReload((value) => value + 1)}
+                  >
+                    Thử lại
+                  </button>
+                </div>
+              )}
+              {!hotelsLoading && !hotelsError && (
+                <>
+                  <div className="stay-grid">
+                    {visible.map((stay) => (
+                      <article className="stay-card" key={stay.id}>
+                        <div className="art-wrapper">
+                          <Artwork stay={stay} />
+                          <span className="stay-tag">{stay.category}</span>
+                          <button
+                            className={`save-button ${saved.includes(stay.id) ? "is-saved" : ""}`}
+                            aria-label={`${saved.includes(stay.id) ? "Bỏ lưu" : "Lưu"} ${stay.name}`}
+                            aria-pressed={saved.includes(stay.id)}
+                            onClick={() => toggleSaved(stay.id)}
+                          >
+                            {saved.includes(stay.id) ? "♥" : "♡"}
+                          </button>
+                        </div>
+                        <div className="stay-meta">
+                          <span>
+                            {stay.city}, {stay.country}
+                          </span>
+                          <span className="rating">★ {stay.rating}</span>
+                        </div>
+                        <button
+                          className="stay-title"
+                          onClick={() => void openDetail(stay)}
+                        >
+                          {stay.name} <span>↗</span>
+                        </button>
+                        <p>{stay.description}</p>
+                        <div className="stay-price">
+                          <span>Chưa có thông tin giá phòng</span>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                  {visible.length === 0 && (
+                    <div className="empty-state">
+                      <span>⌕</span>
+                      <h2>
+                        {page === "saved"
+                          ? "Chưa có nơi nào được lưu"
+                          : "Chưa tìm thấy nơi phù hợp"}
+                      </h2>
+                      <p>
+                        {page === "saved"
+                          ? "Nhấn biểu tượng trái tim để lưu nơi bạn thích."
+                          : "Không có khách sạn phù hợp trên trang này. Thử trang khác hoặc bỏ bộ lọc."}
+                      </p>
+                      <button className="outline" onClick={resetExplore}>
+                        Khám phá tất cả
                       </button>
                     </div>
-                    <div className="stay-meta">
-                      <span>{stay.city}, Việt Nam</span>
-                      <span className="rating">★ {stay.rating}</span>
-                    </div>
-                    <button
-                      className="stay-title"
-                      onClick={() => setDetail(stay)}
-                    >
-                      {stay.name} <span>↗</span>
-                    </button>
-                    <p>{stay.description}</p>
-                    <div className="stay-price">
-                      <strong>{money(stay.price)}</strong>
-                      <span> / đêm · giá minh họa</span>
-                    </div>
-                  </article>
-                ))}
-              </div>
-              {visible.length === 0 && (
-                <div className="empty-state">
-                  <span>⌕</span>
-                  <h2>
-                    {page === "saved"
-                      ? "Chưa có nơi nào được lưu"
-                      : "Chưa tìm thấy nơi phù hợp"}
-                  </h2>
-                  <p>
-                    {page === "saved"
-                      ? "Nhấn biểu tượng trái tim để lưu nơi bạn thích."
-                      : "Thử Đà Lạt, Đà Nẵng hoặc Hội An trong bộ sưu tập minh họa."}
-                  </p>
-                  <button className="outline" onClick={resetExplore}>
-                    Khám phá tất cả
+                  )}
+                </>
+              )}
+              {page === "explore" && (
+                <div className="pagination">
+                  <button
+                    className="outline"
+                    disabled={hotelPage === 1 || hotelsLoading}
+                    onClick={() => setHotelPage((value) => value - 1)}
+                  >
+                    ← Trang trước
+                  </button>
+                  <span>Trang {hotelPage}</span>
+                  <button
+                    className="outline"
+                    disabled={!hasNext || hotelsLoading || !!hotelsError}
+                    onClick={() => setHotelPage((value) => value + 1)}
+                  >
+                    Trang sau →
                   </button>
                 </div>
               )}
               <div className="collection-note">
-                <span>ⓘ</span> Đây là dữ liệu minh họa. Tìm kiếm chỉ lọc bộ sưu
-                tập; chưa kiểm tra ngày, số khách hoặc tình trạng phòng. Chức
-                năng đặt phòng sẽ mở khi hệ thống khách sạn sẵn sàng.
+                <span>ⓘ</span> Dữ liệu khách sạn từ hệ thống. Hình vẽ chỉ mang
+                tính minh họa. Tìm kiếm và bộ lọc áp dụng trên trang hiện tại;
+                chưa kiểm tra ngày, số khách hoặc tình trạng phòng.
               </div>
             </>
+          )}
+          {page === "manage" && (
+            <HotelManager
+              token={session?.token ?? null}
+              onLogin={() => openAuth()}
+              onChanged={() => setReload((value) => value + 1)}
+              onUnauthorized={() => {
+                setSession(null);
+                setUser(null);
+                setNotice(
+                  "Phiên đăng nhập không còn hợp lệ. Vui lòng đăng nhập lại.",
+                );
+              }}
+            />
           )}
           {page === "trips" && (
             <>
@@ -651,29 +780,43 @@ export default function App() {
       </dialog>
       <dialog
         ref={detailDialog}
-        onCancel={() => setDetail(null)}
-        onClose={() => setDetail(null)}
+        onCancel={closeDetail}
+        onClose={closeDetail}
         aria-labelledby="detail-title"
       >
         <button
           className="dialog-close"
           aria-label="Đóng"
-          onClick={() => setDetail(null)}
+          onClick={closeDetail}
         >
           ×
         </button>
         {detail && (
           <>
-            <span className="sample-badge">Nơi ở minh họa</span>
+            <span className="sample-badge">Thông tin khách sạn</span>
             <h2 id="detail-title">{detail.name}</h2>
             <p>
-              {detail.city}, Việt Nam · ★ {detail.rating}
+              {detail.city}, {detail.country} · {detail.rating}
             </p>
             <Artwork stay={detail} />
-            <p>{detail.description}</p>
-            <p>
-              <strong>{money(detail.price)}</strong> / đêm · giá minh họa
-            </p>
+            {detailLoading ? (
+              <p role="status">Đang tải chi tiết…</p>
+            ) : detailError ? (
+              <>
+                <p className="error" role="alert">
+                  {detailError}
+                </p>
+                <button
+                  className="outline"
+                  onClick={() => void openDetail(detail)}
+                >
+                  Thử lại
+                </button>
+              </>
+            ) : (
+              <p>{detail.description}</p>
+            )}
+            <p>Chưa có thông tin giá phòng</p>
             <div className="collection-note">
               Chưa hỗ trợ kiểm tra phòng trống hoặc đặt phòng cho nơi ở này.
             </div>
