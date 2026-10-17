@@ -5,11 +5,19 @@ definitions:
       address:
         maxLength: 255
         type: string
+      amenities:
+        items:
+          type: string
+        maxItems: 20
+        type: array
       city:
         maxLength: 100
         type: string
       country:
         maxLength: 100
+        type: string
+      image_url:
+        maxLength: 2048
         type: string
       name:
         maxLength: 100
@@ -30,6 +38,10 @@ definitions:
     properties:
       address:
         type: string
+      amenities:
+        items:
+          type: string
+        type: array
       city:
         type: string
       country:
@@ -37,6 +49,8 @@ definitions:
       created_at:
         type: string
       id:
+        type: string
+      image_url:
         type: string
       name:
         type: string
@@ -63,11 +77,19 @@ definitions:
       address:
         maxLength: 255
         type: string
+      amenities:
+        items:
+          type: string
+        maxItems: 20
+        type: array
       city:
         maxLength: 100
         type: string
       country:
         maxLength: 100
+        type: string
+      image_url:
+        maxLength: 2048
         type: string
       name:
         maxLength: 100
@@ -125,6 +147,13 @@ definitions:
     - email
     - password
     type: object
+  identity.Role:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+    type: object
   identity.User:
     properties:
       created_at:
@@ -133,6 +162,214 @@ definitions:
         type: string
       id:
         type: string
+      roles:
+        items:
+          $ref: '#/definitions/identity.Role'
+        type: array
+      updated_at:
+        type: string
+    type: object
+  lodging.AdminInput:
+    properties:
+      enabled:
+        type: boolean
+    required:
+    - enabled
+    type: object
+  lodging.AvailableRoom:
+    properties:
+      available:
+        type: integer
+      currency:
+        type: string
+      nights:
+        items:
+          $ref: '#/definitions/lodging.Inventory'
+        type: array
+      room:
+        $ref: '#/definitions/lodging.RoomType'
+      total:
+        type: integer
+    type: object
+  lodging.Booking:
+    properties:
+      cancel_before:
+        type: string
+      check_in:
+        type: string
+      check_out:
+        type: string
+      created_at:
+        type: string
+      currency:
+        type: string
+      guest_name:
+        type: string
+      guests:
+        type: integer
+      hotel_id:
+        type: string
+      hotel_name:
+        type: string
+      id:
+        type: string
+      nights:
+        items:
+          $ref: '#/definitions/lodging.BookingNight'
+        type: array
+      payment_status:
+        type: string
+      phone:
+        type: string
+      room_name:
+        type: string
+      room_type_id:
+        type: string
+      rooms:
+        type: integer
+      status:
+        type: string
+      total:
+        type: integer
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  lodging.BookingInput:
+    properties:
+      check_in:
+        type: string
+      check_out:
+        type: string
+      expected_total:
+        minimum: 0
+        type: integer
+      guest_name:
+        maxLength: 100
+        type: string
+      guests:
+        maximum: 2000
+        minimum: 1
+        type: integer
+      phone:
+        maxLength: 30
+        type: string
+      room_type_id:
+        type: string
+      rooms:
+        maximum: 100
+        minimum: 1
+        type: integer
+    required:
+    - check_in
+    - check_out
+    - guest_name
+    - guests
+    - phone
+    - room_type_id
+    - rooms
+    type: object
+  lodging.BookingNight:
+    properties:
+      date:
+        type: string
+      price:
+        type: integer
+      rooms:
+        type: integer
+    type: object
+  lodging.Inventory:
+    properties:
+      capacity:
+        type: integer
+      date:
+        type: string
+      price:
+        type: integer
+      reserved:
+        type: integer
+      room_type_id:
+        type: string
+    type: object
+  lodging.InventoryInput:
+    properties:
+      capacity:
+        maximum: 10000
+        minimum: 0
+        type: integer
+      from:
+        type: string
+      price:
+        maximum: 1000000000000
+        minimum: 0
+        type: integer
+      to:
+        type: string
+    required:
+    - from
+    - to
+    type: object
+  lodging.MemberInput:
+    properties:
+      email:
+        type: string
+      role:
+        enum:
+        - owner
+        - manager
+        - staff
+        - remove
+        type: string
+    required:
+    - email
+    - role
+    type: object
+  lodging.MemberRow:
+    properties:
+      email:
+        type: string
+      role:
+        type: string
+      user_id:
+        type: string
+    type: object
+  lodging.RoomInput:
+    properties:
+      active:
+        type: boolean
+      capacity:
+        maximum: 20
+        minimum: 1
+        type: integer
+      name:
+        maxLength: 100
+        type: string
+      total_rooms:
+        maximum: 10000
+        minimum: 1
+        type: integer
+    required:
+    - capacity
+    - name
+    - total_rooms
+    type: object
+  lodging.RoomType:
+    properties:
+      active:
+        type: boolean
+      capacity:
+        type: integer
+      created_at:
+        type: string
+      hotel_id:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      total_rooms:
+        type: integer
       updated_at:
         type: string
     type: object
@@ -142,6 +379,117 @@ info:
   title: Booking API
   version: "1.0"
 paths:
+  /admin/audit-logs:
+    get:
+      parameters:
+      - default: 1
+        description: Page
+        in: query
+        name: page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - OAuth2Password: []
+      summary: List recent audit events
+      tags:
+      - Admin
+  /admin/users:
+    get:
+      parameters:
+      - default: 1
+        description: Page
+        in: query
+        name: page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/identity.User'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - OAuth2Password: []
+      summary: List users and roles
+      tags:
+      - Admin
+  /admin/users/{id}/admin:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Resource UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Request fields
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/lodging.AdminInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - OAuth2Password: []
+      summary: Grant or revoke system admin
+      tags:
+      - Admin
   /auth/login:
     post:
       consumes:
@@ -181,7 +529,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/identity.LoginResponse'
+            $ref: '#/definitions/identity.User'
         "400":
           description: Bad Request
           schema:
@@ -190,6 +538,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/identity.ErrorResponse'
+      security:
+      - OAuth2Password: []
       summary: Get current user
       tags:
       - Auth
@@ -262,6 +612,159 @@ paths:
       summary: Get a token using the standard Swagger login form
       tags:
       - Auth
+  /bookings:
+    get:
+      parameters:
+      - default: 1
+        description: Page
+        in: query
+        name: page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/lodging.Booking'
+            type: array
+      security:
+      - OAuth2Password: []
+      summary: List my bookings
+      tags:
+      - Bookings
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 8-100 characters, unique per attempt
+        in: header
+        name: Idempotency-Key
+        required: true
+        type: string
+      - description: Guest details and expected total
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/lodging.BookingInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/lodging.Booking'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - OAuth2Password: []
+      summary: Create or replay a booking
+      tags:
+      - Bookings
+  /bookings/{id}:
+    get:
+      parameters:
+      - description: Booking UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/lodging.Booking'
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - OAuth2Password: []
+      summary: Get booking detail
+      tags:
+      - Bookings
+  /bookings/{id}/cancel:
+    post:
+      parameters:
+      - description: Booking UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/lodging.Booking'
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - OAuth2Password: []
+      summary: Cancel booking
+      tags:
+      - Bookings
+  /bookings/{id}/complete:
+    post:
+      parameters:
+      - description: Resource UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - OAuth2Password: []
+      summary: Complete stay and acknowledge cash payment
+      tags:
+      - Management
   /hotels:
     get:
       parameters:
@@ -274,6 +777,32 @@ paths:
         description: Page size, maximum 100
         in: query
         name: limit
+        type: integer
+      - description: Hotel name, city or country
+        in: query
+        name: destination
+        type: string
+      - description: Star rank
+        in: query
+        name: rank
+        type: integer
+      - description: YYYY-MM-DD
+        in: query
+        name: check_in
+        type: string
+      - description: YYYY-MM-DD
+        in: query
+        name: check_out
+        type: string
+      - default: 1
+        description: Number of rooms
+        in: query
+        name: rooms
+        type: integer
+      - default: 2
+        description: Number of guests
+        in: query
+        name: guests
         type: integer
       produces:
       - application/json
@@ -481,6 +1010,455 @@ paths:
       summary: Replace all editable hotel fields
       tags:
       - Hotels
+  /hotels/{id}/availability:
+    get:
+      parameters:
+      - description: Hotel UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: YYYY-MM-DD
+        in: query
+        name: check_in
+        required: true
+        type: string
+      - description: YYYY-MM-DD
+        in: query
+        name: check_out
+        required: true
+        type: string
+      - default: 1
+        description: Rooms
+        in: query
+        name: rooms
+        type: integer
+      - default: 2
+        description: Guests
+        in: query
+        name: guests
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/lodging.AvailableRoom'
+            type: array
+      summary: Find available room types and total VND price
+      tags:
+      - Rooms
+  /hotels/{id}/bookings:
+    get:
+      parameters:
+      - description: Resource UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - default: 1
+        description: Page
+        in: query
+        name: page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/lodging.Booking'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - OAuth2Password: []
+      summary: List hotel bookings
+      tags:
+      - Management
+  /hotels/{id}/manage-rooms:
+    get:
+      parameters:
+      - description: Resource UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/lodging.RoomType'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - OAuth2Password: []
+      summary: List room types including inactive rooms
+      tags:
+      - Management
+  /hotels/{id}/members:
+    get:
+      parameters:
+      - description: Resource UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/lodging.MemberRow'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - OAuth2Password: []
+      summary: List hotel members
+      tags:
+      - Management
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Resource UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Request fields
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/lodging.MemberInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - OAuth2Password: []
+      summary: Set or remove hotel membership
+      tags:
+      - Management
+  /hotels/{id}/room-types:
+    get:
+      parameters:
+      - description: Hotel UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/lodging.RoomType'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List active room types
+      tags:
+      - Rooms
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Hotel UUID for POST, room UUID for PUT
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Room fields
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/lodging.RoomInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/lodging.RoomType'
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/lodging.RoomType'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - OAuth2Password: []
+      summary: Save room type
+      tags:
+      - Rooms
+  /me/hotels:
+    get:
+      parameters:
+      - default: 1
+        description: Page
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hotel.ListResponse'
+      security:
+      - OAuth2Password: []
+      summary: List my managed hotels
+      tags:
+      - Management
+  /room-types/{id}:
+    delete:
+      parameters:
+      - description: Room type UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - OAuth2Password: []
+      summary: Stop selling room type
+      tags:
+      - Rooms
+    get:
+      parameters:
+      - description: Room type UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/lodging.RoomType'
+      summary: Get room type
+      tags:
+      - Rooms
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Hotel UUID for POST, room UUID for PUT
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Room fields
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/lodging.RoomInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/lodging.RoomType'
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/lodging.RoomType'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - OAuth2Password: []
+      summary: Save room type
+      tags:
+      - Rooms
+  /room-types/{id}/inventory:
+    get:
+      parameters:
+      - description: Room type UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Inclusive YYYY-MM-DD
+        in: query
+        name: from
+        required: true
+        type: string
+      - description: Exclusive YYYY-MM-DD
+        in: query
+        name: to
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/lodging.Inventory'
+            type: array
+      security:
+      - OAuth2Password: []
+      summary: Get daily inventory
+      tags:
+      - Inventory
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Room type UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Date range [from,to)
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/lodging.InventoryInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - OAuth2Password: []
+      summary: Set daily price and inventory
+      tags:
+      - Inventory
 securityDefinitions:
   OAuth2Password:
     description: Use your email as username. Client ID and client secret can be left

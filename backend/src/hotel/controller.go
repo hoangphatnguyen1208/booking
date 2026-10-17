@@ -14,13 +14,27 @@ type Controller struct{ service *Service }
 
 func NewCController(service *Service) *Controller { return &Controller{service: service} }
 func (c *Controller) RegisterRoutes(api *gin.RouterGroup, requireAuth gin.HandlerFunc) {
-	api.GET("/me/hotels", requireAuth, func(ctx *gin.Context) { ctx.Set("managed_by", ctx.GetString("user_id")); c.List(ctx) })
+	api.GET("/me/hotels", requireAuth, c.ManagedList)
 	routes := api.Group("/hotels")
 	routes.GET("", c.List)
 	routes.GET("/:id", c.FindByID)
 	routes.POST("", requireAuth, c.Create)
 	routes.PUT("/:id", requireAuth, c.Update)
 	routes.DELETE("/:id", requireAuth, c.Delete)
+}
+
+// ManagedList lists hotels assigned to the current actor.
+// @Summary List my managed hotels
+// @Tags Management
+// @Security OAuth2Password
+// @Produce json
+// @Param page query int false "Page" default(1)
+// @Param limit query int false "Page size" default(20)
+// @Success 200 {object} ListResponse
+// @Router /me/hotels [get]
+func (c *Controller) ManagedList(ctx *gin.Context) {
+	ctx.Set("managed_by", ctx.GetString("user_id"))
+	c.List(ctx)
 }
 
 var uuidPattern = regexp.MustCompile(`(?i)^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
@@ -31,6 +45,12 @@ var uuidPattern = regexp.MustCompile(`(?i)^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[
 // @Produce json
 // @Param page query int false "Page" default(1)
 // @Param limit query int false "Page size, maximum 100" default(20)
+// @Param destination query string false "Hotel name, city or country"
+// @Param rank query int false "Star rank"
+// @Param check_in query string false "YYYY-MM-DD"
+// @Param check_out query string false "YYYY-MM-DD"
+// @Param rooms query int false "Number of rooms" default(1)
+// @Param guests query int false "Number of guests" default(2)
 // @Success 200 {object} ListResponse
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string

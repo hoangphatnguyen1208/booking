@@ -139,9 +139,10 @@ func (c *Controller) Login(ctx *gin.Context) {
 // Me godoc
 // @Summary Get current user
 // @Tags Auth
+// @Security OAuth2Password
 // @Accept json
 // @Produce json
-// @Success 200 {object} LoginResponse
+// @Success 200 {object} User
 // @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /auth/me [get]
