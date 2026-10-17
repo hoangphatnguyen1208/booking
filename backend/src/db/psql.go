@@ -19,5 +19,3 @@ func Connect(env *config.Env) *gorm.DB {
 	}
 	return db
 }
-
-

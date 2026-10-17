@@ -8,6 +8,7 @@ import (
 	"booking/src/db"
 	"booking/src/hotel"
 	"booking/src/identity"
+	"booking/src/lodging"
 	"booking/src/middleware"
 	"booking/src/swaggerui"
 
@@ -43,12 +44,13 @@ func main() {
 
 	controller := identity.NewController(service)
 
-	RequireAuth := middleware.RequireAuth(tokens)
+	RequireAuth := middleware.RequireAuth(tokens, repo)
 
 	router := gin.Default()
 	api := router.Group("/api/v1")
 	controller.RegisterRoutes(api, RequireAuth)
 	hotel.NewCController(hotel.NewService(hotel.NewRepository(conn))).RegisterRoutes(api, RequireAuth)
+	lodging.New(conn).RegisterRoutes(api, RequireAuth)
 
 	swaggerui.RegisterRoutes(router)
 	log.Println("Connected to the database successfully:", conn)

@@ -9,8 +9,8 @@ import (
 )
 
 var (
-    ErrUserNotFound  = errors.New("user not found")
-    ErrEmailExists   = errors.New("email already exists")
+	ErrUserNotFound = errors.New("user not found")
+	ErrEmailExists  = errors.New("email already exists")
 )
 
 type Repository struct {
@@ -53,7 +53,7 @@ func (r *Repository) FindByEmail(ctx context.Context, email string) (*User, erro
 func (r *Repository) FindByID(ctx context.Context, id string) (*User, error) {
 	var user User
 
-	err := r.db.WithContext(ctx).Where("id = ?", id).First(&user).Error
+	err := r.db.WithContext(ctx).Preload("Roles").Where("id = ?", id).First(&user).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrUserNotFound
 	}

@@ -1,6 +1,7 @@
 package hotel
 
 import (
+	"booking/src/permission"
 	"errors"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -41,6 +42,10 @@ func (c *Controller) List(ctx *gin.Context) {
 	}
 	items, err := c.service.List(ctx.Request.Context(), page, limit)
 	if err != nil {
+		if errors.Is(err, permission.ErrForbidden) {
+			ctx.JSON(403, gin.H{"error": "Forbidden"})
+			return
+		}
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
@@ -74,8 +79,12 @@ func (c *Controller) Create(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	hotel, err := c.service.Create(ctx.Request.Context(), &req)
+	hotel, err := c.service.CreateForActor(ctx.Request.Context(), ctx.GetString("user_id"), &req)
 	if err != nil {
+		if errors.Is(err, permission.ErrForbidden) {
+			ctx.JSON(403, gin.H{"error": "Forbidden"})
+			return
+		}
 		if errors.Is(err, ErrInvalidHotel) {
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid hotel details"})
 			return
@@ -113,8 +122,12 @@ func (c *Controller) Update(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	hotel, err := c.service.Update(ctx.Request.Context(), ctx.Param("id"), &req)
+	hotel, err := c.service.UpdateForActor(ctx.Request.Context(), ctx.GetString("user_id"), ctx.Param("id"), &req)
 	if err != nil {
+		if errors.Is(err, permission.ErrForbidden) {
+			ctx.JSON(403, gin.H{"error": "Forbidden"})
+			return
+		}
 		if errors.Is(err, ErrInvalidHotel) {
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid hotel details"})
 			return
@@ -149,7 +162,7 @@ func (c *Controller) Delete(ctx *gin.Context) {
 	if !validID(ctx) {
 		return
 	}
-	if err := c.service.Delete(ctx.Request.Context(), ctx.Param("id")); err != nil {
+	if err := c.service.DeleteForActor(ctx.Request.Context(), ctx.GetString("user_id"), ctx.Param("id")); err != nil {
 		if errors.Is(err, ErrHotelNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"error": "Hotel not found"})
 			return
@@ -177,6 +190,10 @@ func (c *Controller) FindByID(ctx *gin.Context) {
 	}
 	hotel, err := c.service.FindByID(ctx.Request.Context(), ctx.Param("id"))
 	if err != nil {
+		if errors.Is(err, permission.ErrForbidden) {
+			ctx.JSON(403, gin.H{"error": "Forbidden"})
+			return
+		}
 		if errors.Is(err, ErrHotelNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"error": "Hotel not found"})
 			return

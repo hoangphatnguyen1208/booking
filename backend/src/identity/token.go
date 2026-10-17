@@ -8,7 +8,7 @@ import (
 )
 
 type TokenManager struct {
-	secret string
+	secret     string
 	expireTime int
 }
 
@@ -20,10 +20,10 @@ func (t *TokenManager) GenerateToken(user *User) (string, error) {
 	now := time.Now()
 
 	claims := jwt.RegisteredClaims{
-		Subject: user.ID,
-		Issuer: "booking-api",
-		Audience: jwt.ClaimStrings{"booking-client"},
-		IssuedAt: jwt.NewNumericDate(now),
+		Subject:   user.ID,
+		Issuer:    "booking-api",
+		Audience:  jwt.ClaimStrings{"booking-client"},
+		IssuedAt:  jwt.NewNumericDate(now),
 		ExpiresAt: jwt.NewNumericDate(now.Add(time.Duration(t.expireTime) * time.Second)),
 	}
 
@@ -33,7 +33,7 @@ func (t *TokenManager) GenerateToken(user *User) (string, error) {
 
 func (t *TokenManager) ValidateToken(tokenString string) (string, error) {
 	claims := &jwt.RegisteredClaims{}
-	
+
 	token, err := jwt.ParseWithClaims(
 		tokenString,
 		claims,
