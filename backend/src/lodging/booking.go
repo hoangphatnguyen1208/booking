@@ -25,6 +25,18 @@ type BookingInput struct {
 	ExpectedTotal int64  `json:"expected_total" binding:"min=0"`
 }
 
+// Book atomically reserves inventory.
+// @Summary Create or replay a booking
+// @Tags Bookings
+// @Security OAuth2Password
+// @Accept json
+// @Produce json
+// @Param Idempotency-Key header string true "8-100 characters, unique per attempt"
+// @Param request body BookingInput true "Guest details and expected total"
+// @Success 201 {object} Booking
+// @Failure 400 {object} map[string]string
+// @Failure 409 {object} map[string]string
+// @Router /bookings [post]
 func (s *Service) Book(ctx context.Context, actor, key string, in BookingInput) (*Booking, error) {
 	days, err := dates(in.CheckIn, in.CheckOut, 90)
 	if err != nil {
@@ -32,7 +44,7 @@ func (s *Service) Book(ctx context.Context, actor, key string, in BookingInput) 
 	}
 	location, _ := time.LoadLocation("Asia/Ho_Chi_Minh")
 	today := time.Now().In(location).Format("2006-01-02")
-	if in.CheckIn < today || in.Rooms < 1 || in.Rooms > 100 || in.Guests < 1 || in.Guests > 2000 || strings.TrimSpace(in.GuestName) == "" || strings.TrimSpace(in.Phone) == "" || len(key) < 8 || len(key) > 100 {
+	if in.Rooms < 1 || in.Rooms > 100 || in.Guests < 1 || in.Guests > 2000 || strings.TrimSpace(in.GuestName) == "" || strings.TrimSpace(in.Phone) == "" || len(key) < 8 || len(key) > 100 {
 		return nil, fail(400, "Invalid booking or idempotency key")
 	}
 	data, _ := json.Marshal(in)
@@ -52,6 +64,9 @@ func (s *Service) Book(ctx context.Context, actor, key string, in BookingInput) 
 		}
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return err
+		}
+		if in.CheckIn < today {
+			return fail(400, "Check-in date is in the past")
 		}
 		var room RoomType
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&room, "id = ?", in.RoomTypeID).Error; err != nil {
@@ -102,11 +117,30 @@ func (s *Service) Book(ctx context.Context, actor, key string, in BookingInput) 
 	})
 	return &result, err
 }
+
+// MyBookings lists the actor's bookings.
+// @Summary List my bookings
+// @Tags Bookings
+// @Security OAuth2Password
+// @Produce json
+// @Param page query int false "Page" default(1)
+// @Success 200 {array} Booking
+// @Router /bookings [get]
 func (s *Service) MyBookings(ctx context.Context, actor string, page int) ([]Booking, error) {
 	rows := []Booking{}
 	err := s.DB.WithContext(ctx).Where("user_id = ?", actor).Order("created_at DESC,id").Offset((page - 1) * 20).Limit(20).Find(&rows).Error
 	return rows, err
 }
+
+// Booking enforces ownership or hotel membership.
+// @Summary Get booking detail
+// @Tags Bookings
+// @Security OAuth2Password
+// @Produce json
+// @Param id path string true "Booking UUID"
+// @Success 200 {object} Booking
+// @Failure 403 {object} map[string]string
+// @Router /bookings/{id} [get]
 func (s *Service) Booking(ctx context.Context, actor, id string) (*Booking, error) {
 	var row Booking
 	if err := s.DB.WithContext(ctx).Preload("Nights").First(&row, "id = ?", id).Error; err != nil {
@@ -119,6 +153,17 @@ func (s *Service) Booking(ctx context.Context, actor, id string) (*Booking, erro
 	}
 	return &row, nil
 }
+
+// Cancel releases inventory once before the cancellation deadline.
+// @Summary Cancel booking
+// @Tags Bookings
+// @Security OAuth2Password
+// @Produce json
+// @Param id path string true "Booking UUID"
+// @Success 200 {object} Booking
+// @Failure 403 {object} map[string]string
+// @Failure 409 {object} map[string]string
+// @Router /bookings/{id}/cancel [post]
 func (s *Service) Cancel(ctx context.Context, actor, id string) (*Booking, error) {
 	original, err := s.Booking(ctx, actor, id)
 	if err != nil {
@@ -132,6 +177,7 @@ func (s *Service) Cancel(ctx context.Context, actor, id string) (*Booking, error
 	}
 	var result Booking
 	err = s.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+
 		var room RoomType
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&room, "id = ?", original.RoomTypeID).Error; err != nil {
 			return dbError(err)

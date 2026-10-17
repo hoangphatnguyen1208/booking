@@ -52,6 +52,7 @@ func integer(c *gin.Context, key string, fallback int) int {
 func (s *Service) RegisterRoutes(api *gin.RouterGroup, auth gin.HandlerFunc) {
 	s.registerManagement(api, auth)
 	s.registerAdmin(api, auth)
+	s.registerRoomDetail(api, auth)
 	api.POST("/bookings", auth, func(c *gin.Context) {
 		var input BookingInput
 		if c.ShouldBindJSON(&input) != nil {

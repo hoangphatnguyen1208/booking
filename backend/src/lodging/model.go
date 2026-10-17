@@ -52,6 +52,29 @@ type BookingNight struct {
 	Price     int64     `json:"price"`
 	Rooms     int       `json:"rooms"`
 }
+
+func (b *Booking) AfterFind(tx *gorm.DB) error {
+	if len(b.CheckIn) > 10 {
+		b.CheckIn = b.CheckIn[:10]
+	}
+	if len(b.CheckOut) > 10 {
+		b.CheckOut = b.CheckOut[:10]
+	}
+	return nil
+}
+
 type Service struct{ DB *gorm.DB }
+type MemberInput struct {
+	Email string `json:"email" binding:"required,email"`
+	Role  string `json:"role" binding:"required,oneof=owner manager staff remove"`
+}
+type MemberRow struct {
+	UserID string `json:"user_id"`
+	Email  string `json:"email"`
+	Role   string `json:"role"`
+}
+type AdminInput struct {
+	Enabled *bool `json:"enabled" binding:"required"`
+}
 
 func New(db *gorm.DB) *Service { return &Service{DB: db} }

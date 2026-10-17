@@ -42,84 +42,139 @@ func (s *Service) membership(ctx context.Context, actor, hotelID, email, role st
 	})
 }
 func (s *Service) registerManagement(api *gin.RouterGroup, auth gin.HandlerFunc) {
-	api.GET("/hotels/:id/members", auth, func(c *gin.Context) {
-		if !IDs(c) {
-			return
-		}
-		if err := permission.New(s.DB).Require(c.Request.Context(), c.GetString("user_id"), c.Param("id"), "members"); err != nil {
-			respond(c, nil, err, 200)
-			return
-		}
-		type memberRow struct {
-			UserID string `json:"user_id"`
-			Email  string `json:"email"`
-			Role   string `json:"role"`
-		}
-		rows := []memberRow{}
-		err := s.DB.WithContext(c.Request.Context()).Table("hotel_members hm").Select("hm.user_id, users.email, hm.role").Joins("JOIN users ON users.id = hm.user_id").Where("hm.hotel_id = ?", c.Param("id")).Order("users.email").Scan(&rows).Error
-		respond(c, rows, err, 200)
-	})
-	api.PUT("/hotels/:id/members", auth, func(c *gin.Context) {
-		if !IDs(c) {
-			return
-		}
-		var input struct {
-			Email string `json:"email" binding:"required,email"`
-			Role  string `json:"role" binding:"required,oneof=owner manager staff remove"`
-		}
-		if c.ShouldBindJSON(&input) != nil {
-			c.JSON(400, gin.H{"error": "Invalid member"})
-			return
-		}
-		err := s.membership(c.Request.Context(), c.GetString("user_id"), c.Param("id"), input.Email, input.Role, input.Role == "remove")
-		respond(c, gin.H{"message": "Membership updated"}, err, 200)
-	})
-	api.GET("/hotels/:id/manage-rooms", auth, func(c *gin.Context) {
-		if !IDs(c) {
-			return
-		}
-		if err := permission.New(s.DB).Require(c.Request.Context(), c.GetString("user_id"), c.Param("id"), "edit"); err != nil {
-			respond(c, nil, err, 200)
-			return
-		}
-		rows := []RoomType{}
-		err := s.DB.WithContext(c.Request.Context()).Where("hotel_id = ?", c.Param("id")).Order("created_at,id").Find(&rows).Error
-		respond(c, rows, err, 200)
-	})
-	api.GET("/hotels/:id/bookings", auth, func(c *gin.Context) {
-		if !IDs(c) {
-			return
-		}
-		if err := permission.New(s.DB).Require(c.Request.Context(), c.GetString("user_id"), c.Param("id"), "bookings"); err != nil {
-			respond(c, nil, err, 200)
-			return
-		}
-		page := integer(c, "page", 1)
-		if page < 1 || page > 1000000 {
-			c.JSON(400, gin.H{"error": "Invalid page"})
-			return
-		}
-		rows := []Booking{}
-		err := s.DB.WithContext(c.Request.Context()).Where("hotel_id = ?", c.Param("id")).Order("created_at DESC,id").Offset((page - 1) * 20).Limit(20).Find(&rows).Error
-		respond(c, rows, err, 200)
-	})
-	api.GET("/admin/users", auth, func(c *gin.Context) {
-		yes, err := permission.New(s.DB).IsAdmin(c.Request.Context(), c.GetString("user_id"))
-		if err != nil {
-			respond(c, nil, err, 200)
-			return
-		}
-		if !yes {
-			respond(c, nil, permission.ErrForbidden, 200)
-			return
-		}
-		page := integer(c, "page", 1)
-		if page < 1 || page > 1000000 {
-			c.JSON(400, gin.H{"error": "Invalid page"})
-			return
-		}
-		rows := []identity.User{}
-		err = s.DB.WithContext(c.Request.Context()).Preload("Roles").Order("created_at,id").Offset((page - 1) * 20).Limit(20).Find(&rows).Error
-		respond(c, rows, err, 200)
-	})
+	api.GET("/hotels/:id/members", auth, s.ListMembersHTTP)
+	api.PUT("/hotels/:id/members", auth, s.UpdateMembersHTTP)
+	api.GET("/hotels/:id/manage-rooms", auth, s.ManagedRoomsHTTP)
+	api.GET("/hotels/:id/bookings", auth, s.HotelBookingsHTTP)
+	api.GET("/admin/users", auth, s.AdminUsersHTTP)
+}
+
+// ListMembersHTTP handles List hotel members.
+// @Summary List hotel members
+// @Tags Management
+// @Security OAuth2Password
+// @Produce json
+// @Param id path string true "Resource UUID"
+// @Success 200 {array} MemberRow
+// @Failure 401 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Router /hotels/{id}/members [get]
+func (s *Service) ListMembersHTTP(c *gin.Context) {
+	if !IDs(c) {
+		return
+	}
+	if err := permission.New(s.DB).Require(c.Request.Context(), c.GetString("user_id"), c.Param("id"), "members"); err != nil {
+		respond(c, nil, err, 200)
+		return
+	}
+	rows := []MemberRow{}
+	err := s.DB.WithContext(c.Request.Context()).Table("hotel_members hm").Select("hm.user_id, users.email, hm.role").Joins("JOIN users ON users.id = hm.user_id").Where("hm.hotel_id = ?", c.Param("id")).Order("users.email").Scan(&rows).Error
+	respond(c, rows, err, 200)
+}
+
+// UpdateMembersHTTP handles Set or remove hotel membership.
+// @Summary Set or remove hotel membership
+// @Tags Management
+// @Security OAuth2Password
+// @Produce json
+// @Param id path string true "Resource UUID"
+// @Accept json
+// @Param request body MemberInput true "Request fields"
+// @Success 200 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Router /hotels/{id}/members [put]
+func (s *Service) UpdateMembersHTTP(c *gin.Context) {
+	if !IDs(c) {
+		return
+	}
+	var input MemberInput
+	if c.ShouldBindJSON(&input) != nil {
+		c.JSON(400, gin.H{"error": "Invalid member"})
+		return
+	}
+	err := s.membership(c.Request.Context(), c.GetString("user_id"), c.Param("id"), input.Email, input.Role, input.Role == "remove")
+	respond(c, gin.H{"message": "Membership updated"}, err, 200)
+}
+
+// ManagedRoomsHTTP handles List room types including inactive rooms.
+// @Summary List room types including inactive rooms
+// @Tags Management
+// @Security OAuth2Password
+// @Produce json
+// @Param id path string true "Resource UUID"
+// @Success 200 {array} RoomType
+// @Failure 401 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Router /hotels/{id}/manage-rooms [get]
+func (s *Service) ManagedRoomsHTTP(c *gin.Context) {
+	if !IDs(c) {
+		return
+	}
+	if err := permission.New(s.DB).Require(c.Request.Context(), c.GetString("user_id"), c.Param("id"), "edit"); err != nil {
+		respond(c, nil, err, 200)
+		return
+	}
+	rows := []RoomType{}
+	err := s.DB.WithContext(c.Request.Context()).Where("hotel_id = ?", c.Param("id")).Order("created_at,id").Find(&rows).Error
+	respond(c, rows, err, 200)
+}
+
+// HotelBookingsHTTP handles List hotel bookings.
+// @Summary List hotel bookings
+// @Tags Management
+// @Security OAuth2Password
+// @Produce json
+// @Param id path string true "Resource UUID"
+// @Param page query int false "Page" default(1)
+// @Success 200 {array} Booking
+// @Failure 401 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Router /hotels/{id}/bookings [get]
+func (s *Service) HotelBookingsHTTP(c *gin.Context) {
+	if !IDs(c) {
+		return
+	}
+	if err := permission.New(s.DB).Require(c.Request.Context(), c.GetString("user_id"), c.Param("id"), "bookings"); err != nil {
+		respond(c, nil, err, 200)
+		return
+	}
+	page := integer(c, "page", 1)
+	if page < 1 || page > 1000000 {
+		c.JSON(400, gin.H{"error": "Invalid page"})
+		return
+	}
+	rows := []Booking{}
+	err := s.DB.WithContext(c.Request.Context()).Where("hotel_id = ?", c.Param("id")).Order("created_at DESC,id").Offset((page - 1) * 20).Limit(20).Find(&rows).Error
+	respond(c, rows, err, 200)
+}
+
+// AdminUsersHTTP handles List users and roles.
+// @Summary List users and roles
+// @Tags Admin
+// @Security OAuth2Password
+// @Produce json
+// @Param page query int false "Page" default(1)
+// @Success 200 {array} identity.User
+// @Failure 401 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Router /admin/users [get]
+func (s *Service) AdminUsersHTTP(c *gin.Context) {
+	yes, err := permission.New(s.DB).IsAdmin(c.Request.Context(), c.GetString("user_id"))
+	if err != nil {
+		respond(c, nil, err, 200)
+		return
+	}
+	if !yes {
+		respond(c, nil, permission.ErrForbidden, 200)
+		return
+	}
+	page := integer(c, "page", 1)
+	if page < 1 || page > 1000000 {
+		c.JSON(400, gin.H{"error": "Invalid page"})
+		return
+	}
+	rows := []identity.User{}
+	err = s.DB.WithContext(c.Request.Context()).Preload("Roles").Order("created_at,id").Offset((page - 1) * 20).Limit(20).Find(&rows).Error
+	respond(c, rows, err, 200)
 }
