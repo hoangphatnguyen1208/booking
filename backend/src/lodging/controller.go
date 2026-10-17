@@ -50,6 +50,38 @@ func integer(c *gin.Context, key string, fallback int) int {
 	return n
 }
 func (s *Service) RegisterRoutes(api *gin.RouterGroup, auth gin.HandlerFunc) {
+	api.POST("/bookings", auth, func(c *gin.Context) {
+		var input BookingInput
+		if c.ShouldBindJSON(&input) != nil {
+			c.JSON(400, gin.H{"error": "Invalid booking"})
+			return
+		}
+		row, err := s.Book(c.Request.Context(), c.GetString("user_id"), c.GetHeader("Idempotency-Key"), input)
+		respond(c, row, err, 201)
+	})
+	api.GET("/bookings", auth, func(c *gin.Context) {
+		page := integer(c, "page", 1)
+		if page < 1 || page > 1000000 {
+			c.JSON(400, gin.H{"error": "Invalid page"})
+			return
+		}
+		rows, err := s.MyBookings(c.Request.Context(), c.GetString("user_id"), page)
+		respond(c, rows, err, 200)
+	})
+	api.GET("/bookings/:id", auth, func(c *gin.Context) {
+		if !IDs(c) {
+			return
+		}
+		row, err := s.Booking(c.Request.Context(), c.GetString("user_id"), c.Param("id"))
+		respond(c, row, err, 200)
+	})
+	api.POST("/bookings/:id/cancel", auth, func(c *gin.Context) {
+		if !IDs(c) {
+			return
+		}
+		row, err := s.Cancel(c.Request.Context(), c.GetString("user_id"), c.Param("id"))
+		respond(c, row, err, 200)
+	})
 	api.GET("/hotels/:id/room-types", func(c *gin.Context) {
 		if !IDs(c) {
 			return
