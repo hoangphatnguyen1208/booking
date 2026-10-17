@@ -1,4 +1,5 @@
 export type User = {
+  roles?: { id: string; name: string }[];
   id: string;
   email: string;
   created_at: string;
@@ -37,7 +38,10 @@ const base = (import.meta.env.VITE_API_BASE_URL || "/api/v1").replace(
   /\/$/,
   "",
 );
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+export async function request<T>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T> {
   let response: Response;
   try {
     response = await fetch(`${base}${path}`, {
@@ -64,10 +68,13 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
           ? "Email hoặc mật khẩu không đúng."
           : "Thông tin không hợp lệ. Vui lòng kiểm tra lại.",
       401: "Phiên đăng nhập không còn hợp lệ.",
+      403: "Bạn không có quyền thực hiện thao tác này.",
       404: "Khách sạn không còn tồn tại.",
       409: path.startsWith("/hotels")
-        ? "Slug khách sạn đã tồn tại."
-        : "Email này đã được đăng ký.",
+        ? "Dữ liệu bị xung đột. Kiểm tra slug hoặc tồn phòng."
+        : path.startsWith("/auth")
+          ? "Email này đã được đăng ký."
+          : "Phòng, giá hoặc trạng thái đơn đã thay đổi. Vui lòng tải lại.",
       429: "Bạn đã thử quá nhiều lần. Vui lòng thử lại sau.",
     };
     throw new ApiError(

@@ -4,16 +4,21 @@ import { api, ApiError } from "./api";
 import type { User } from "./api";
 import { toStay, localDate, readSaved } from "./catalog";
 import HotelManager from "./HotelManager";
+import BookingPanel from "./BookingPanel";
+import Trips from "./Trips";
+import AdminPanel from "./AdminPanel";
+import { bookingApi } from "./booking-api";
 import type { Stay } from "./catalog";
 import "./App.css";
 
-type Page = "explore" | "saved" | "trips" | "profile" | "manage";
+type Page = "explore" | "saved" | "trips" | "profile" | "manage" | "admin";
 const navigation = [
   ["explore", "⌘", "Khám phá"],
   ["saved", "♡", "Đã lưu"],
   ["trips", "▤", "Chuyến đi của tôi"],
   ["profile", "◎", "Tài khoản"],
   ["manage", "⌂", "Quản lý"],
+  ["admin", "⚙", "Admin"],
 ] as const;
 function Artwork({ stay }: { stay: Stay }) {
   return (
@@ -28,7 +33,23 @@ function Artwork({ stay }: { stay: Stay }) {
 }
 
 export default function App() {
-  const [page, setPage] = useState<Page>("explore");
+  const [page, setPage] = useState<Page>(() => {
+    const p = location.hash.slice(1);
+    return navigation.some((item) => item[0] === p) ? (p as Page) : "explore";
+  });
+  const [searchParams, setSearchParams] = useState<Record<string, string>>({});
+  const [searchGuests, setSearchGuests] = useState("2");
+  useEffect(() => {
+    const change = () => {
+      const p = location.hash.slice(1);
+      if (navigation.some((item) => item[0] === p)) setPage(p as Page);
+    };
+    window.addEventListener("hashchange", change);
+    return () => window.removeEventListener("hashchange", change);
+  }, []);
+  useEffect(() => {
+    if (location.hash.slice(1) !== page) location.hash = page;
+  }, [page]);
   const [saved, setSaved] = useState(readSaved);
   const [stays, setStays] = useState<Stay[]>([]);
   const [savedStays, setSavedStays] = useState<Stay[]>([]);
@@ -64,7 +85,11 @@ export default function App() {
               results.filter((stay): stay is Stay => stay !== null),
             );
         } else {
-          const result = await api.hotels(hotelPage, controller.signal);
+          const result = await bookingApi.search(
+            hotelPage,
+            searchParams,
+            controller.signal,
+          );
           if (!controller.signal.aborted) {
             setStays(result.items.map(toStay));
             setHasNext(result.items.length === result.limit);
@@ -83,7 +108,7 @@ export default function App() {
     }
     if (page === "explore" || page === "saved") void load();
     return () => controller.abort();
-  }, [hotelPage, reload, page, saved]);
+  }, [hotelPage, reload, page, saved, searchParams]);
   useEffect(() => () => detailRequest.current?.abort(), []);
   async function openDetail(stay: Stay) {
     detailRequest.current?.abort();
@@ -110,7 +135,6 @@ export default function App() {
   }
   const [category, setCategory] = useState("Tất cả");
   const [destination, setDestination] = useState("");
-  const [query, setQuery] = useState("");
   const [checkIn, setCheckIn] = useState(localDate(1));
   const [checkOut, setCheckOut] = useState(localDate(3));
   const [searchError, setSearchError] = useState("");
@@ -255,7 +279,14 @@ export default function App() {
       return;
     }
     setSearchError("");
-    setQuery(destination.trim());
+    setHotelPage(1);
+    setSearchParams({
+      destination: destination.trim(),
+      check_in: checkIn,
+      check_out: checkOut,
+      rooms: "1",
+      guests: searchGuests,
+    });
     setCategory("Tất cả");
   }
   function toggleSaved(id: string) {
@@ -268,19 +299,12 @@ export default function App() {
   function resetExplore() {
     setPage("explore");
     setDestination("");
-    setQuery("");
+    setSearchParams({});
+    setHotelPage(1);
     setCategory("Tất cả");
   }
   const visible = (page === "saved" ? savedStays : stays).filter(
-    (stay) =>
-      (page !== "saved" || saved.includes(stay.id)) &&
-      (page === "saved" ||
-        category === "Tất cả" ||
-        stay.category === category) &&
-      (page === "saved" ||
-        `${stay.city} ${stay.name}`
-          .toLocaleLowerCase("vi")
-          .includes(query.toLocaleLowerCase("vi"))),
+    (stay) => (page !== "saved" || saved.includes(stay.id)) && true,
   );
 
   return (
@@ -299,20 +323,26 @@ export default function App() {
         </a>
         <div className="nav-label">KHÔNG GIAN CỦA BẠN</div>
         <nav aria-label="Điều hướng chính">
-          {navigation.map(([id, icon, title]) => (
-            <button
-              key={id}
-              className={`nav-item ${page === id ? "active" : ""}`}
-              onClick={() => setPage(id)}
-              aria-current={page === id ? "page" : undefined}
-            >
-              <span aria-hidden="true">{icon}</span>
-              {title}
-              {id === "saved" && saved.length > 0 && (
-                <small>{saved.length}</small>
-              )}
-            </button>
-          ))}
+          {navigation
+            .filter(
+              (item) =>
+                item[0] !== "admin" ||
+                user?.roles?.some((role) => role.name === "admin"),
+            )
+            .map(([id, icon, title]) => (
+              <button
+                key={id}
+                className={`nav-item ${page === id ? "active" : ""}`}
+                onClick={() => setPage(id)}
+                aria-current={page === id ? "page" : undefined}
+              >
+                <span aria-hidden="true">{icon}</span>
+                {title}
+                {id === "saved" && saved.length > 0 && (
+                  <small>{saved.length}</small>
+                )}
+              </button>
+            ))}
         </nav>
         <div className="sidebar-note">
           <span className="little-sun">☀</span>
@@ -440,7 +470,11 @@ export default function App() {
                 </label>
                 <label>
                   <span>DU KHÁCH</span>
-                  <select aria-label="Số khách" defaultValue="2">
+                  <select
+                    aria-label="Số khách"
+                    value={searchGuests}
+                    onChange={(e) => setSearchGuests(e.target.value)}
+                  >
                     <option value="1">1 người lớn</option>
                     <option value="2">2 người lớn</option>
                     <option value="3">3 người lớn</option>
@@ -472,7 +506,14 @@ export default function App() {
                     key={item}
                     className={category === item ? "selected" : ""}
                     aria-pressed={category === item}
-                    onClick={() => setCategory(item)}
+                    onClick={() => {
+                      setCategory(item);
+                      setHotelPage(1);
+                      setSearchParams((current) => ({
+                        ...current,
+                        rank: item === "Tất cả" ? "" : item[0],
+                      }));
+                    }}
                   >
                     <span aria-hidden="true">
                       {["✧", "♧", "≈", "⌂"][index]}
@@ -586,8 +627,8 @@ export default function App() {
               )}
               <div className="collection-note">
                 <span>ⓘ</span> Dữ liệu khách sạn từ hệ thống. Hình vẽ chỉ mang
-                tính minh họa. Tìm kiếm và bộ lọc áp dụng trên trang hiện tại;
-                chưa kiểm tra ngày, số khách hoặc tình trạng phòng.
+                tính minh họa. Tìm kiếm kiểm tra phòng trống trên toàn hệ thống.
+                Giá và tồn phòng được xác nhận lại khi gửi đơn.
               </div>
             </>
           )}
@@ -606,22 +647,9 @@ export default function App() {
             />
           )}
           {page === "trips" && (
-            <>
-              <span className="eyebrow dark">HÀNH TRÌNH CỦA BẠN</span>
-              <h1>Chuyến đi của tôi</h1>
-              <div className="empty-state">
-                <span>♧</span>
-                <h2>Hành trình mới đang chờ bạn</h2>
-                <p>
-                  Chức năng đặt phòng và lịch sử chuyến đi đang được hoàn thiện.
-                  Hiện tại bạn có thể khám phá và lưu những nơi yêu thích.
-                </p>
-                <button className="primary" onClick={resetExplore}>
-                  Khám phá nơi ở →
-                </button>
-              </div>
-            </>
+            <Trips token={session?.token ?? null} onLogin={() => openAuth()} />
           )}
+          {page === "admin" && <AdminPanel token={session?.token ?? null} />}
           {page === "profile" && (
             <>
               <span className="eyebrow dark">KHÔNG GIAN CÁ NHÂN</span>
@@ -818,8 +846,21 @@ export default function App() {
             )}
             <p>Chưa có thông tin giá phòng</p>
             <div className="collection-note">
-              Chưa hỗ trợ kiểm tra phòng trống hoặc đặt phòng cho nơi ở này.
+              Thanh toán tại khách sạn. Giá và tồn phòng được kiểm tra lại khi
+              đặt.
             </div>
+            {!detailLoading && !detailError && (
+              <BookingPanel
+                key={detail.id}
+                hotelId={detail.id}
+                token={session?.token ?? null}
+                onLogin={() => openAuth()}
+                onTrips={() => {
+                  closeDetail();
+                  setPage("trips");
+                }}
+              />
+            )}
             <button className="primary" onClick={() => toggleSaved(detail.id)}>
               {saved.includes(detail.id)
                 ? "Bỏ lưu nơi ở"

@@ -37,7 +37,23 @@ const hotels = [
   },
 ];
 test.beforeEach(async ({ page }) => {
-  await page.route("**/api/v1/hotels?*", (route) =>
+  await page.route("**/api/v1/hotels?*", (route) => {
+    const params = new URL(route.request().url()).searchParams;
+    const destination = (params.get("destination") || "").toLocaleLowerCase(
+      "vi",
+    );
+    const rank = Number(params.get("rank"));
+    const items = hotels.filter(
+      (h) =>
+        (!rank || h.rank === rank) &&
+        (!destination ||
+          (h.city + " " + h.name)
+            .toLocaleLowerCase("vi")
+            .includes(destination)),
+    );
+    return route.fulfill({ json: { items, page: 1, limit: 20 } });
+  });
+  await page.route("**/api/v1/me/hotels?*", (route) =>
     route.fulfill({ json: { items: hotels, page: 1, limit: 20 } }),
   );
   await page.route("**/api/v1/hotels/*", (route) => {
@@ -86,9 +102,7 @@ test("search, category, favorite persistence and detail dialog", async ({
   await page.reload();
   await page.getByRole("button", { name: /Đã lưu/ }).click();
   await page.getByRole("button", { name: "The Coast House ↗" }).click();
-  await expect(page.getByRole("dialog")).toContainText(
-    "Chưa hỗ trợ kiểm tra phòng trống",
-  );
+  await expect(page.getByRole("dialog")).toContainText("Kiểm tra phòng trống");
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).not.toBeVisible();
   await page.getByRole("button", { name: "Khám phá", exact: true }).click();
@@ -246,6 +260,9 @@ test("management creates updates and deletes using authenticated API", async ({
   page,
 }) => {
   let collection = [...hotels];
+  await page.route("**/api/v1/me/hotels?*", (route) =>
+    route.fulfill({ json: { items: collection, page: 1, limit: 20 } }),
+  );
   let method = "";
   let header = "";
   let body: Record<string, unknown> = {};

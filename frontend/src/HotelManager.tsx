@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { api, ApiError } from "./api";
 import type { Hotel, HotelInput } from "./api";
+import { bookingApi } from "./booking-api";
+import HotelWorkspace from "./HotelWorkspace";
 
 const blank: HotelInput = {
   name: "",
@@ -23,6 +25,7 @@ export default function HotelManager({
   onUnauthorized: () => void;
 }) {
   const [items, setItems] = useState<Hotel[]>([]);
+  const [workspace, setWorkspace] = useState<Hotel | null>(null);
   const [page, setPage] = useState(1);
   const [hasNext, setHasNext] = useState(false);
   const [refresh, setRefresh] = useState(0);
@@ -40,7 +43,11 @@ export default function HotelManager({
       setLoading(true);
       setError("");
       try {
-        const result = await api.hotels(page, controller.signal);
+        const result = await bookingApi.managed(
+          token!,
+          page,
+          controller.signal,
+        );
         if (!controller.signal.aborted) {
           setItems(result.items);
           setHasNext(result.items.length === result.limit);
@@ -214,6 +221,13 @@ export default function HotelManager({
           <div className="management-list">
             {items.map((hotel) => (
               <article key={hotel.id}>
+                <button
+                  className="outline"
+                  disabled={busy}
+                  onClick={() => setWorkspace(hotel)}
+                >
+                  Phòng và nhân sự {hotel.name}
+                </button>
                 <div>
                   <strong>{hotel.name}</strong>
                   <p>
@@ -274,6 +288,15 @@ export default function HotelManager({
               Tải lại
             </button>
           </div>
+        </>
+      )}
+      {workspace && (
+        <>
+          <button className="outline" onClick={() => setWorkspace(null)}>
+            Đóng quản lý phòng
+          </button>
+          <h2>{workspace.name}</h2>
+          <HotelWorkspace key={workspace.id} token={token} id={workspace.id} />
         </>
       )}
     </section>
