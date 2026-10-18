@@ -74,6 +74,18 @@ const user = {
   created_at: "2026-01-01T00:00:00Z",
   updated_at: "2026-01-01T00:00:00Z",
 };
+test("stay dates use hotel timezone across the UTC midnight boundary", async ({
+  page,
+}) => {
+  await page.clock.install({ time: new Date("2026-10-17T18:00:00Z") });
+  await page.goto("/");
+  await expect(page.getByLabel("Ngày nhận phòng", { exact: true })).toHaveValue(
+    "2026-10-19",
+  );
+  await expect(page.getByLabel("Ngày trả phòng", { exact: true })).toHaveValue(
+    "2026-10-21",
+  );
+});
 async function login(page: Page) {
   await page.getByRole("button", { name: "Đăng nhập ↗" }).click();
   await page.getByLabel("Email", { exact: true }).fill(user.email);
