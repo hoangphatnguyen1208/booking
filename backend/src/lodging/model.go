@@ -6,6 +6,7 @@ import (
 )
 
 type RoomType struct {
+	ImageURL   string    `json:"image_url" gorm:"not null;default:''"`
 	ID         string    `json:"id" gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 	HotelID    string    `json:"hotel_id" gorm:"type:uuid;not null;index"`
 	Name       string    `json:"name" gorm:"type:varchar(100);not null"`

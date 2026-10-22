@@ -1,0 +1,1 @@
+ALTER TABLE room_types ADD COLUMN IF NOT EXISTS image_url text NOT NULL DEFAULT '';

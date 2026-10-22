@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -38,6 +39,7 @@ func requireHotel(ctx context.Context, conn *gorm.DB, id string) error {
 }
 
 type RoomInput struct {
+	ImageURL   string `json:"image_url" binding:"max=2048"`
 	Name       string `json:"name" binding:"required,max=100"`
 	Capacity   int    `json:"capacity" binding:"required,min=1,max=20"`
 	TotalRooms int    `json:"total_rooms" binding:"required,min=1,max=10000"`
@@ -80,6 +82,13 @@ func (s *Service) SaveRoom(ctx context.Context, actor, hotelID, id string, in Ro
 	if strings.TrimSpace(in.Name) == "" {
 		return nil, fail(400, "Name is required")
 	}
+	if in.ImageURL != "" {
+		u, err := url.Parse(in.ImageURL)
+		if err != nil || u.Scheme != "https" || u.Hostname() == "" || u.User != nil || len(in.ImageURL) > 2048 {
+			return nil, fail(400, "Image URL must use HTTPS and be at most 2048 characters")
+		}
+	}
+
 	var room RoomType
 	err := s.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if id != "" {
@@ -104,10 +113,10 @@ func (s *Service) SaveRoom(ctx context.Context, actor, hotelID, id string, in Ro
 			}
 		}
 		if id == "" {
-			room = RoomType{HotelID: hotelID, Name: strings.TrimSpace(in.Name), Capacity: in.Capacity, TotalRooms: in.TotalRooms, Active: in.Active}
+			room = RoomType{ImageURL: in.ImageURL, HotelID: hotelID, Name: strings.TrimSpace(in.Name), Capacity: in.Capacity, TotalRooms: in.TotalRooms, Active: in.Active}
 			return tx.Create(&room).Error
 		}
-		return tx.Model(&room).Updates(map[string]any{"name": strings.TrimSpace(in.Name), "capacity": in.Capacity, "total_rooms": in.TotalRooms, "active": in.Active}).Error
+		return tx.Model(&room).Updates(map[string]any{"image_url": in.ImageURL, "name": strings.TrimSpace(in.Name), "capacity": in.Capacity, "total_rooms": in.TotalRooms, "active": in.Active}).Error
 	})
 	return &room, err
 }

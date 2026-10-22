@@ -342,6 +342,9 @@ definitions:
         maximum: 20
         minimum: 1
         type: integer
+      image_url:
+        maxLength: 2048
+        type: string
       name:
         maxLength: 100
         type: string
@@ -365,6 +368,8 @@ definitions:
       hotel_id:
         type: string
       id:
+        type: string
+      image_url:
         type: string
       name:
         type: string

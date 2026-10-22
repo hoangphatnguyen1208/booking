@@ -2205,6 +2205,10 @@ const docTemplate = `{
                     "maximum": 20,
                     "minimum": 1
                 },
+                "image_url": {
+                    "type": "string",
+                    "maxLength": 2048
+                },
                 "name": {
                     "type": "string",
                     "maxLength": 100
@@ -2232,6 +2236,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
+                    "type": "string"
+                },
+                "image_url": {
                     "type": "string"
                 },
                 "name": {

@@ -72,6 +72,7 @@ func Seed(ctx context.Context, conn *gorm.DB, in Options) (Result, error) {
 				Name: fmt.Sprintf("%s %s %02d (Mẫu)", hotelNames[i%len(hotelNames)], place.City, i+1),
 				Slug: slug, Address: fmt.Sprintf("Khu lưu trú mẫu %02d, %s", i+1, place.City),
 				City: place.City, Country: "VN", Rank: uint(3 + i%3),
+				ImageURL:  sampleHotelImages[i%len(sampleHotelImages)],
 				Amenities: []string{"Wi-Fi miễn phí", "Điều hòa", "Lễ tân 24 giờ", "Bãi đỗ xe"},
 			})
 			if err != nil {
@@ -79,7 +80,7 @@ func Seed(ctx context.Context, conn *gorm.DB, in Options) (Result, error) {
 			}
 			for n, kind := range roomKinds {
 				room, err := rooms.SaveRoom(ctx, owner.ID, h.ID, "", lodging.RoomInput{
-					Name: kind.Name, Capacity: kind.Capacity, TotalRooms: kind.Total, Active: true,
+					ImageURL: sampleRoomImages[n%len(sampleRoomImages)], Name: kind.Name, Capacity: kind.Capacity, TotalRooms: kind.Total, Active: true,
 				})
 				if err != nil {
 					return fmt.Errorf("create room %q for hotel %s (%s): %w", kind.Name, slug, h.ID, err)
@@ -116,4 +117,17 @@ var roomKinds = []struct {
 	{"Standard giường đôi", 2, 10},
 	{"Deluxe ban công", 3, 6},
 	{"Family Suite", 4, 4},
+}
+
+// Keep these demo photo URLs aligned with migration 008_demo_photos.sql.
+var sampleHotelImages = []string{
+	"https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=960&q=80",
+	"https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=960&q=80",
+	"https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=960&q=80",
+	"https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=960&q=80",
+}
+var sampleRoomImages = []string{
+	"https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=960&q=80",
+	"https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=960&q=80",
+	"https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=960&q=80",
 }

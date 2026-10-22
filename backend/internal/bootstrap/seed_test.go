@@ -75,6 +75,9 @@ func TestSeedIsAtomicAndPreservesExistingInventory(t *testing.T) {
 	if err := conn.First(&room).Error; err != nil {
 		t.Fatal(err)
 	}
+	if !strings.HasPrefix(room.ImageURL, "https://images.unsplash.com/") {
+		t.Fatal("seeded room has no sample photo")
+	}
 	available, err := lodging.New(conn).Availability(ctx, room.HotelID, "2030-01-01", "2030-01-03", 1, 2)
 	if err != nil || len(available) != 3 {
 		t.Fatalf("availability: %v, %+v", err, available)
