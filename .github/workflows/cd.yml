@@ -1,7 +1,7 @@
 name: Deploy booking
 on:
   workflow_run:
-    workflows: ["Verify booking MVP"]
+    workflows: ["Build and push Docker"]
     types: [completed]
     branches: [master]
 permissions:
