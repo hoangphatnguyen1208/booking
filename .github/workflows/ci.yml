@@ -68,9 +68,12 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npm run build
+      - run: npm run typecheck
       - run: npm run lint
       - run: npx playwright install --with-deps chromium
       - run: npm test -- --workers=2
+        env:
+          PLAYWRIGHT_PRODUCTION: "1"
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
