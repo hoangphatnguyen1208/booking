@@ -142,9 +142,6 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master' && vars.DEPLOY_ENABLED == 'true'
     needs: [backend, frontend, container-smoke, end-to-end]
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        component: [backend, frontend]
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -154,11 +151,11 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
       - uses: docker/build-push-action@v6
         with:
-          context: ./${{ matrix.component }}
+          context: ./backend
           push: true
           platforms: linux/amd64
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/booking-${{ matrix.component }}:${{ github.sha }}
-            ${{ secrets.DOCKER_USERNAME }}/booking-${{ matrix.component }}:latest
-          cache-from: type=gha,scope=${{ matrix.component }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.component }}
+            ${{ secrets.DOCKER_USERNAME }}/booking-backend:${{ github.sha }}
+            ${{ secrets.DOCKER_USERNAME }}/booking-backend:latest
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend

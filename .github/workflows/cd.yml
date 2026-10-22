@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - name: Deploy via SSH (pull images)
+      - name: Deploy backend via SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -27,6 +27,6 @@ jobs:
           script: |
             set -eu
             cd booking
-            docker compose pull backend frontend
-            docker compose up -d --no-build backend frontend
+            docker compose pull backend
+            docker compose up -d --no-build backend
             docker image prune -f
