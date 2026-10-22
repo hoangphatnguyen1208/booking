@@ -312,6 +312,18 @@ export default function HotelManager({
                 <div className="management-info">
                   <span className="hotel-mark" aria-hidden="true">
                     {hotel.name.charAt(0)}
+                    {hotel.image_url && (
+                      <img
+                        src={hotel.image_url}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                        }}
+                      />
+                    )}
                   </span>
                   <div>
                     <h3>{hotel.name}</h3>

@@ -7,6 +7,7 @@ import type { Page } from "./navigation";
 import { api, ApiError } from "./api";
 import type { User } from "./api";
 import { toStay, localDate, readSaved } from "./catalog";
+import Footer from "./Footer";
 import HotelManager from "./HotelManager";
 import BookingPanel from "./BookingPanel";
 import Trips from "./Trips";
@@ -30,6 +31,7 @@ function Artwork({ stay }: { stay: Stay }) {
           src={stay.image_url}
           alt=""
           loading="lazy"
+          decoding="async"
           referrerPolicy="no-referrer"
           onError={(e) => {
             e.currentTarget.style.display = "none";
@@ -749,11 +751,7 @@ export default function App({ page }: { page: Page }) {
               )}
             </>
           )}
-          <footer className="footer">
-            <span className="footer-brand">booking.</span>
-            <span>Những nơi ở đẹp. Những kỷ niệm dài lâu.</span>
-            <small>Made for your next chapter.</small>
-          </footer>
+          <Footer />
         </div>
       </main>
       <dialog

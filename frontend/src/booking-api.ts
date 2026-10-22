@@ -1,6 +1,7 @@
 import { request } from "./api";
 import type { HotelList } from "./api";
 export type Room = {
+  image_url?: string;
   id: string;
   hotel_id: string;
   name: string;

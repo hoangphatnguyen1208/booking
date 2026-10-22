@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { bookingApi, money, dateLabel } from "./booking-api";
 import type { Room, Inventory, Booking } from "./booking-api";
+import RoomPhoto from "./RoomPhoto";
 import { localDate } from "./catalog";
 export default function HotelWorkspace({
   token,
@@ -13,6 +14,7 @@ export default function HotelWorkspace({
   const [rooms, setRooms] = useState<Room[]>([]),
     [selected, setSelected] = useState<string>(""),
     [name, setName] = useState(""),
+    [imageUrl, setImageUrl] = useState(""),
     [capacity, setCapacity] = useState(2),
     [total, setTotal] = useState(1),
     [active, setActive] = useState(true);
@@ -56,7 +58,7 @@ export default function HotelWorkspace({
       const room = await bookingApi.saveRoom(
         token,
         id,
-        { name, capacity, total_rooms: total, active },
+        { name, image_url: imageUrl, capacity, total_rooms: total, active },
         selected || undefined,
       );
       setSelected(room.id);
@@ -140,6 +142,7 @@ export default function HotelWorkspace({
   function select(room: Room) {
     setSelected(room.id);
     setName(room.name);
+    setImageUrl(room.image_url || "");
     setCapacity(room.capacity);
     setTotal(room.total_rooms);
     setActive(room.active);
@@ -174,6 +177,7 @@ export default function HotelWorkspace({
           onClick={() => {
             setSelected("");
             setName("");
+            setImageUrl("");
             setCapacity(2);
             setTotal(1);
             setActive(true);
@@ -183,6 +187,13 @@ export default function HotelWorkspace({
           + Loại phòng mới
         </button>
       </div>
+      {imageUrl && (
+        <RoomPhoto
+          key={imageUrl}
+          src={imageUrl}
+          name={name || "đang chỉnh sửa"}
+        />
+      )}
       <form className="hotel-form" onSubmit={saveRoom}>
         <h3>{selected ? "Sửa loại phòng" : "Thêm loại phòng"}</h3>
         <fieldset disabled={busy}>
@@ -227,7 +238,18 @@ export default function HotelWorkspace({
               <option value="false">Ngừng bán</option>
             </select>
           </label>
-          <button className="primary">Lưu loại phòng</button>
+          <label>
+            Ảnh phòng (URL HTTPS)
+            <input
+              type="url"
+              maxLength={2048}
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+            />
+          </label>
+          <div className="form-actions">
+            <button className="primary">Lưu loại phòng</button>
+          </div>
         </fieldset>
       </form>
       {selected && (

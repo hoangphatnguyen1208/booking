@@ -8,6 +8,8 @@ const hotel = {
   country: "VN",
   address: "Đường ven biển",
   rank: 4,
+  image_url:
+    "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=960&q=80",
 };
 const room = {
   id: "room-1",
@@ -16,6 +18,8 @@ const room = {
   capacity: 4,
   total_rooms: 12,
   active: true,
+  image_url:
+    "https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=960&q=80",
 };
 const user = {
   created_at: "2026-01-01T00:00:00Z",
@@ -54,6 +58,14 @@ test("all routes and management workspace fit narrow and wide screens", async ({
       JSON.stringify(["11111111-1111-1111-1111-111111111111"]),
     );
   });
+  // Keep routine checks independent of external image availability.
+  if (!process.env.LAYOUT_REAL_IMAGES)
+    await page.route("https://images.unsplash.com/**", (route) =>
+      route.fulfill({
+        contentType: "image/svg+xml",
+        body: '<svg xmlns="http://www.w3.org/2000/svg" width="960" height="600"><rect width="960" height="600" fill="#b9cbb7"/></svg>',
+      }),
+    );
   await page.route("**/api/v1/**", (route) => {
     const path = new URL(route.request().url()).pathname.replace("/api/v1", "");
     let json: unknown = [];
@@ -72,6 +84,10 @@ test("all routes and management workspace fit narrow and wide screens", async ({
         limit: 20,
       };
     else if (path === `/hotels/${hotel.id}`) json = hotel;
+    else if (path.endsWith("/availability"))
+      json = [
+        { room, available: 5, total: 1200000, currency: "VND", nights: [] },
+      ];
     else if (path.endsWith("/manage-rooms")) json = [room];
     else if (path.endsWith("/members"))
       json = [{ user_id: user.id, email: user.email, role: "owner" }];
@@ -111,8 +127,20 @@ test("all routes and management workspace fit narrow and wide screens", async ({
       await expect(
         page.getByRole("button", { name: "Đăng xuất", exact: true }),
       ).toBeVisible();
+      await expect(
+        page.getByRole("navigation", { name: "Khám phá ở footer" }),
+      ).toBeVisible();
       if (route === "/" || route === "/saved")
         await expect(page.locator(".stay-card").first()).toBeVisible();
+      if (route === "/" || route === "/saved")
+        await expect
+          .poll(() =>
+            page
+              .locator(".stay-card img")
+              .first()
+              .evaluate((el) => (el as HTMLImageElement).naturalWidth),
+          )
+          .toBeGreaterThan(0);
       if (route === "/trips")
         await expect(page.locator(".management-list article")).toHaveCount(1);
       if (route === "/admin") {
@@ -144,6 +172,19 @@ test("all routes and management workspace fit narrow and wide screens", async ({
         await expect(page.getByRole("dialog")).toContainText(
           "Kiểm tra phòng trống",
         );
+        await page
+          .getByRole("button", { name: "Kiểm tra phòng trống", exact: true })
+          .click();
+        const photo = page.getByRole("img", {
+          name: `Phòng ${room.name}`,
+          exact: true,
+        });
+        await expect(photo).toBeVisible();
+        await expect
+          .poll(() =>
+            photo.evaluate((el) => (el as HTMLImageElement).naturalWidth),
+          )
+          .toBeGreaterThan(0);
         await expect
           .poll(() =>
             page
@@ -154,6 +195,10 @@ test("all routes and management workspace fit narrow and wide screens", async ({
         await page.screenshot({
           path: testInfo.outputPath(`${width}-booking-dialog.png`),
           fullPage: true,
+        });
+        await photo.scrollIntoViewIfNeeded();
+        await page.screenshot({
+          path: testInfo.outputPath(`${width}-room-options.png`),
         });
         await page.keyboard.press("Escape");
       }

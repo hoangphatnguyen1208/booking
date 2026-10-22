@@ -1,3 +1,4 @@
+import RoomPhoto from "./RoomPhoto";
 import { useState, useRef } from "react";
 import type { FormEvent } from "react";
 import { bookingApi, money } from "./booking-api";
@@ -194,6 +195,11 @@ export default function BookingPanel({
       )}
       {available?.map((item) => (
         <div className="room-option" key={item.room.id}>
+          <RoomPhoto
+            key={item.room.image_url}
+            src={item.room.image_url}
+            name={item.room.name}
+          />
           <strong>{item.room.name}</strong>
           <p>
             Tối đa {item.room.capacity} khách/phòng · Còn {item.available} phòng
