@@ -26,6 +26,17 @@ func dbError(err error) error {
 	return err
 }
 
+func requireHotel(ctx context.Context, conn *gorm.DB, id string) error {
+	_, err := hotel.NewService(hotel.NewRepository(conn)).FindByID(ctx, id)
+	if errors.Is(err, hotel.ErrHotelNotFound) {
+		return fail(404, "Hotel not found")
+	}
+	if err != nil {
+		return fmt.Errorf("load hotel %s: %w", id, err)
+	}
+	return nil
+}
+
 type RoomInput struct {
 	Name       string `json:"name" binding:"required,max=100"`
 	Capacity   int    `json:"capacity" binding:"required,min=1,max=20"`
@@ -42,8 +53,8 @@ type RoomInput struct {
 // @Failure 404 {object} map[string]string
 // @Router /hotels/{id}/room-types [get]
 func (s *Service) Rooms(ctx context.Context, id string) ([]RoomType, error) {
-	if _, err := hotel.NewService(hotel.NewRepository(s.DB)).FindByID(ctx, id); err != nil {
-		return nil, fail(404, "Hotel not found")
+	if err := requireHotel(ctx, s.DB, id); err != nil {
+		return nil, err
 	}
 	rooms := []RoomType{}
 	err := s.DB.WithContext(ctx).Where("hotel_id = ? AND active = ?", id, true).Order("created_at,id").Find(&rooms).Error
@@ -80,8 +91,8 @@ func (s *Service) SaveRoom(ctx context.Context, actor, hotelID, id string, in Ro
 		if err := permission.New(tx).Require(ctx, actor, hotelID, "edit"); err != nil {
 			return err
 		}
-		if _, err := hotel.NewService(hotel.NewRepository(tx)).FindByID(ctx, hotelID); err != nil {
-			return fail(404, "Hotel not found")
+		if err := requireHotel(ctx, tx, hotelID); err != nil {
+			return err
 		}
 		var count int64
 		if id != "" {

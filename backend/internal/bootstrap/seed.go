@@ -72,13 +72,13 @@ func Seed(ctx context.Context, conn *gorm.DB, in Options) (Result, error) {
 					Name: kind.Name, Capacity: kind.Capacity, TotalRooms: kind.Total, Active: true,
 				})
 				if err != nil {
-					return err
+					return fmt.Errorf("create room %q for hotel %s (%s): %w", kind.Name, slug, h.ID, err)
 				}
 				if err := rooms.PutInventory(ctx, owner.ID, room.ID, lodging.InventoryInput{
 					From: start.Format("2006-01-02"), To: start.AddDate(0, 0, in.Days).Format("2006-01-02"),
 					Capacity: kind.Total, Price: 450000 + int64(i%10)*50000 + int64(n)*350000,
 				}); err != nil {
-					return err
+					return fmt.Errorf("inventory for room %q (%s), hotel %s (%s): %w", kind.Name, room.ID, slug, h.ID, err)
 				}
 				out.Rooms++
 				out.Nights += in.Days
