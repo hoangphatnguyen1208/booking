@@ -1,3 +1,5 @@
+import { UNAUTHORIZED_EVENT } from "./session";
+
 export type User = {
   roles?: { id: string; name: string }[];
   id: string;
@@ -71,6 +73,16 @@ export async function request<T>(
     );
   }
   if (!response.ok) {
+    const authorization = new Headers(options.headers).get("Authorization");
+    if (
+      response.status === 401 &&
+      authorization?.startsWith("Bearer ") &&
+      typeof window !== "undefined"
+    ) {
+      window.dispatchEvent(
+        new CustomEvent(UNAUTHORIZED_EVENT, { detail: authorization.slice(7) }),
+      );
+    }
     const messages: Record<number, string> = {
       400:
         path === "/auth/login"

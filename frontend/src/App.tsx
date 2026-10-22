@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { useRouter } from "next/router";
+import { useSession } from "./useSession";
 import { pages, pagePath } from "./navigation";
 import type { Page } from "./navigation";
 import { api, ApiError } from "./api";
@@ -160,14 +161,11 @@ export default function App({ page }: { page: Page }) {
   const [checkIn, setCheckIn] = useState(localDate(1));
   const [checkOut, setCheckOut] = useState(localDate(3));
   const [searchError, setSearchError] = useState("");
-  const [session, setSession] = useState<{
-    token: string;
-    expiresAt: number;
-  } | null>(null);
+  const { session, setSession } = useSession();
   const [user, setUser] = useState<User | null>(null);
   const [notice, setNotice] = useState("");
   const [profileError, setProfileError] = useState("");
-  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(Boolean(session));
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const [authOpen, setAuthOpen] = useState(false);
   const [authError, setAuthError] = useState("");
@@ -202,16 +200,26 @@ export default function App({ page }: { page: Page }) {
         setUser(null);
         setNotice("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
       },
-      Math.max(0, session.expiresAt - Date.now()),
+      Math.min(2147483647, Math.max(0, session.expiresAt - Date.now())),
     );
     return () => window.clearTimeout(timeout);
-  }, [session]);
+  }, [session, setSession]);
   useEffect(() => {
-    if (!session) return;
+    if (!session) {
+      // oxlint-disable-next-line react/set-state-in-effect -- Reset cached profile when the persisted session changes.
+      setUser(null);
+      setProfileError("");
+      setProfileLoading(false);
+      return;
+    }
+    setProfileLoading(true);
+    setProfileError("");
     const controller = new AbortController();
     api
       .me(session.token, controller.signal)
-      .then(setUser)
+      .then((user) => {
+        if (!controller.signal.aborted) setUser(user);
+      })
       .catch((error) => {
         if (controller.signal.aborted) return;
         if (error instanceof ApiError && error.status === 401) {
@@ -229,7 +237,7 @@ export default function App({ page }: { page: Page }) {
         if (!controller.signal.aborted) setProfileLoading(false);
       });
     return () => controller.abort();
-  }, [session]);
+  }, [session, setSession]);
 
   function openAuth(mode: "login" | "register" = "login") {
     setAuthMode(mode);
@@ -731,8 +739,8 @@ export default function App({ page }: { page: Page }) {
                           </dd>
                         </dl>
                         <p>
-                          Phiên đăng nhập được lưu trong bộ nhớ. Bạn cần đăng
-                          nhập lại khi tải lại trang.
+                          Phiên đăng nhập được lưu trên thiết bị này đến khi hết
+                          hạn hoặc bạn đăng xuất.
                         </p>
                       </>
                     )
