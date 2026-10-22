@@ -56,29 +56,24 @@ go run ./cmd/seed -owner-email hoangphatnguyen1208@gmail.com -hotels 20 -days 90
 
 Có thể đặt `-from YYYY-MM-DD` (ngày bắt đầu, bao gồm). Ngày kết thúc là ngày loại trừ. Seed dùng slug `booking-demo-001`..., tên có hậu tố `(Mẫu)`, địa chỉ là dữ liệu giả. Seed gán owner nhưng không cấp admin hoặc tạo tài khoản/mật khẩu. Chạy lại bỏ qua toàn bộ hotel có slug đã tồn tại (kể cả đã archive); không cập nhật giá/tồn, đặt lại reserved hoặc gia hạn lịch cũ. Mỗi lượt chạy nằm trong một transaction; có lỗi sẽ rollback. Lệnh chỉ chạy khi được gọi, không tự seed lúc server khởi động.
 
-## Development with live reload (Windows)
-
-Install Air once:
-
-```powershell
-go install github.com/air-verse/air@latest
-```
-
-Stop any backend already using port 8080, then run:
+## Chạy backend khi phát triển
 
 ```powershell
 cd D:\booking\backend
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev.ps1
+go run ./src
 ```
 
-Saving Go source, module files, PowerShell scripts, or `.env` regenerates
-Swagger, rebuilds the backend, and restarts it. Generated `docs` and `tmp`
-files are excluded to avoid rebuild loops. Refresh the browser to see updated
-Swagger at http://localhost:8080/swagger/index.html. Stop Air with Ctrl+C.
+Sau khi sửa code hoặc `.env`, dừng server bằng Ctrl+C rồi chạy lại lệnh trên.
+
+Khi thay đổi annotation API, tạo lại Swagger từ thư mục `backend`:
+
+```sh
+go run github.com/swaggo/swag/cmd/swag@v1.16.6 init -g src/main.go -o docs
+```
+
+Swagger UI: http://localhost:8080/swagger/index.html.
 
 Startup applies immutable, versioned SQL migrations from src/db/migrations.
 Environment variables override the optional .env file. JWT_SECRET must contain at least 32 characters.
-
-Run without live reload using `go run ./src`.
 
 See [the project runbook](../README.md) for admin bootstrap, membership permissions, PostgreSQL integration tests, Docker, backup and release procedures. The doc folder contains the long-term project plan.
