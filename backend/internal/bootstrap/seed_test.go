@@ -1,4 +1,4 @@
-package main
+package bootstrap
 
 import (
 	"booking/src/db"
@@ -10,6 +10,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"gorm.io/driver/postgres"
@@ -52,18 +53,18 @@ func TestSeedIsAtomicAndPreservesExistingInventory(t *testing.T) {
 		t.Fatal(err)
 	}
 	ctx := context.Background()
-	in := options{OwnerEmail: owner.Email, Hotels: 2, Days: 3, From: "2030-01-01"}
+	in := Options{OwnerEmail: owner.Email, Hotels: 2, Days: 3, From: "2030-01-01"}
 	missing := in
 	missing.OwnerEmail = "missing@example.test"
-	if _, err := seed(ctx, conn, missing); err == nil {
+	if _, err := Seed(ctx, conn, missing); err == nil {
 		t.Fatal("missing owner accepted")
 	}
-	out, err := seed(ctx, conn, in)
+	out, err := Seed(ctx, conn, in)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if out != (result{Hotels: 2, Rooms: 6, Nights: 18}) {
-		t.Fatalf("unexpected result: %+v", out)
+	if out != (Result{Hotels: 2, Rooms: 6, Nights: 18}) {
+		t.Fatalf("unexpected Result: %+v", out)
 	}
 	var count int64
 	conn.Model(&permission.HotelMember{}).Where("user_id = ? AND role = 'owner'", owner.ID).Count(&count)
@@ -81,8 +82,8 @@ func TestSeedIsAtomicAndPreservesExistingInventory(t *testing.T) {
 	if err := conn.Model(&lodging.Inventory{}).Where("room_type_id = ?", room.ID).Update("reserved", 1).Error; err != nil {
 		t.Fatal(err)
 	}
-	out, err = seed(ctx, conn, in)
-	if err != nil || out != (result{Skipped: 2}) {
+	out, err = Seed(ctx, conn, in)
+	if err != nil || out != (Result{Skipped: 2}) {
 		t.Fatalf("rerun: %+v %v", out, err)
 	}
 	conn.Model(&lodging.Inventory{}).Count(&count)
@@ -98,7 +99,7 @@ func TestSeedIsAtomicAndPreservesExistingInventory(t *testing.T) {
 		t.Fatal(err)
 	}
 	in.Hotels = 3
-	if _, err := seed(ctx, conn, in); err == nil {
+	if _, err := Seed(ctx, conn, in); err == nil {
 		t.Fatal("expected inventory insert failure")
 	}
 	conn.Model(&hotel.Hotel{}).Count(&count)
@@ -108,6 +109,33 @@ func TestSeedIsAtomicAndPreservesExistingInventory(t *testing.T) {
 	conn.Model(&lodging.RoomType{}).Count(&count)
 	if count != 6 {
 		t.Fatalf("partial room was not rolled back: %d", count)
+	}
+	// Bootstrap must roll back the new admin as well if hotel import fails.
+	in.OwnerEmail = "new-bootstrap@example.test"
+	if _, err := Run(ctx, conn, in, strings.NewReader("password123\n")); err == nil {
+		t.Fatal("bootstrap should fail when inventory insert fails")
+	}
+	conn.Model(&identity.User{}).Where("email = ?", in.OwnerEmail).Count(&count)
+	if count != 0 {
+		t.Fatal("bootstrap left an admin account after failure")
+	}
+	if err := conn.Exec("ALTER TABLE inventories DROP CONSTRAINT seed_failure").Error; err != nil {
+		t.Fatal(err)
+	}
+	out, err = Run(ctx, conn, in, strings.NewReader("password123\n"))
+	if err != nil || out != (Result{Hotels: 1, Rooms: 3, Nights: 9, Skipped: 2}) {
+		t.Fatalf("bootstrap: %+v %v", out, err)
+	}
+	var admin identity.User
+	if err := conn.Preload("Roles").Where("email = ?", in.OwnerEmail).First(&admin).Error; err != nil {
+		t.Fatal(err)
+	}
+	if len(admin.Roles) != 1 || admin.Roles[0].Name != "admin" {
+		t.Fatal("bootstrap did not grant admin")
+	}
+	conn.Model(&permission.HotelMember{}).Where("user_id = ? AND role = 'owner'", admin.ID).Count(&count)
+	if count != 1 {
+		t.Fatal("bootstrap did not assign the imported hotel owner")
 	}
 }
 

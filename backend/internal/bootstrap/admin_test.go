@@ -1,4 +1,4 @@
-package main
+package bootstrap
 
 import (
 	"booking/src/db"
@@ -50,10 +50,10 @@ func TestCreateAdminAndRerunPreservesPassword(t *testing.T) {
 		t.Fatal(err)
 	}
 	const email = "bootstrap@example.test"
-	if err := grantAdmin(conn, email, "", false, strings.NewReader("password123\n")); err == nil {
+	if err := GrantAdmin(conn, email, "", false, strings.NewReader("password123\n")); err == nil {
 		t.Fatal("missing account accepted without -create")
 	}
-	if err := grantAdmin(conn, email, "", true, strings.NewReader("short\n")); err == nil {
+	if err := GrantAdmin(conn, email, "", true, strings.NewReader("short\n")); err == nil {
 		t.Fatal("short password accepted")
 	}
 	var count int64
@@ -61,7 +61,7 @@ func TestCreateAdminAndRerunPreservesPassword(t *testing.T) {
 	if count != 0 {
 		t.Fatal("failed registration was not rolled back")
 	}
-	if err := grantAdmin(conn, email, "", true, strings.NewReader("password123\n")); err != nil {
+	if err := GrantAdmin(conn, email, "", true, strings.NewReader("password123\n")); err != nil {
 		t.Fatal(err)
 	}
 	var user identity.User
@@ -75,7 +75,7 @@ func TestCreateAdminAndRerunPreservesPassword(t *testing.T) {
 		t.Fatalf("unexpected roles: %+v", user.Roles)
 	}
 	originalHash := user.HashedPassword
-	if err := grantAdmin(conn, email, "", true, strings.NewReader("different-password\n")); err != nil {
+	if err := GrantAdmin(conn, email, "", true, strings.NewReader("different-password\n")); err != nil {
 		t.Fatal(err)
 	}
 	if err := conn.Preload("Roles").Where("email = ?", email).First(&user).Error; err != nil {
