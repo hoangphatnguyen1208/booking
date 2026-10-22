@@ -8,7 +8,8 @@ import {
 import type { Session } from "./session";
 
 export function useSession() {
-  const [session, updateSession] = useState(readSession);
+  const [session, updateSession] = useState<Session | null>(null);
+  const [ready, setReady] = useState(false);
   const current = useRef(session);
   const setSession = useCallback((next: Session | null) => {
     current.current = next;
@@ -17,6 +18,11 @@ export function useSession() {
   }, []);
 
   useEffect(() => {
+    const restored = readSession();
+    current.current = restored;
+    // oxlint-disable-next-line react/set-state-in-effect -- Restore browser storage after matching the server render.
+    updateSession(restored);
+    setReady(true);
     const storage = (event: StorageEvent) => {
       if (
         event.storageArea !== localStorage ||
@@ -40,5 +46,5 @@ export function useSession() {
     };
   }, [setSession]);
 
-  return { session, setSession };
+  return { session, setSession, ready };
 }
