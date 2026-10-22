@@ -142,7 +142,7 @@ jobs:
             backend/server.log
 
   publish-images:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && vars.DEPLOY_ENABLED == 'true'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     needs: [backend, frontend, container-smoke, end-to-end]
     runs-on: ubuntu-latest
     steps:
