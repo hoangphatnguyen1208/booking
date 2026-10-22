@@ -16,7 +16,7 @@
 
 MVP dùng VND, ngày lưu trú và hạn hủy theo giờ Việt Nam. Một đơn đặt một loại phòng thuộc một khách sạn. Giá là tổng giá các đêm nhân số phòng; không có cổng thanh toán trực tuyến hoặc giữ phòng chờ thanh toán.
 
-Ảnh được nhập bằng URL HTTPS, không có dịch vụ upload file. Email xác nhận, refresh token, khuyến mãi, đánh giá và thanh toán trực tuyến thuộc giai đoạn mở rộng. Token frontend ở bộ nhớ: tải lại trang cần đăng nhập lại.
+Ảnh được nhập bằng URL HTTPS, không có dịch vụ upload file. Email xác nhận, refresh token, khuyến mãi, đánh giá và thanh toán trực tuyến thuộc giai đoạn mở rộng. Frontend lưu access token và thời điểm hết hạn vào localStorage để giữ đăng nhập sau tải lại trang; phiên bị xóa khi đăng xuất, hết hạn hoặc API xác thực trả 401. Chưa có tự gia hạn token.
 
 ## Chạy với Docker
 

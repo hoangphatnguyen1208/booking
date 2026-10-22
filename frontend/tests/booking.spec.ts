@@ -90,7 +90,10 @@ async function login(page: Page) {
   await page.getByRole("button", { name: "Đăng nhập ↗" }).click();
   await page.getByLabel("Email", { exact: true }).fill(user.email);
   await page.getByLabel("Mật khẩu", { exact: true }).fill("test-password");
-  await page.getByRole("button", { name: "Đăng nhập →", exact: true }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Đăng nhập →", exact: true })
+    .click();
 }
 test("search, category, favorite persistence and detail dialog", async ({
   page,
@@ -180,6 +183,11 @@ test("login uses bearer token, profile loads and logout clears access", async ({
     page.locator("dd").filter({ hasText: user.email }),
   ).toBeVisible();
   expect(authorization).toBe("Bearer test-token");
+  await page.reload();
+  await expect(
+    page.locator("dd").filter({ hasText: user.email }),
+  ).toBeVisible();
+  expect(authorization).toBe("Bearer test-token");
   await page.getByRole("button", { name: /Đã lưu/ }).click();
   await expect(page).toHaveURL(/\/saved$/);
   await page.goBack();
@@ -187,13 +195,20 @@ test("login uses bearer token, profile loads and logout clears access", async ({
   await expect(
     page.locator("dd").filter({ hasText: user.email }),
   ).toBeVisible();
-  expect(await page.evaluate(() => Object.keys(localStorage))).toEqual([
-    "booking.saved",
-  ]);
+  expect(
+    await page.evaluate(() =>
+      JSON.parse(localStorage.getItem("booking.session")!),
+    ),
+  ).toMatchObject({ token: "test-token" });
   await page.getByRole("button", { name: "Đăng xuất", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Mỗi hành trình bắt đầu từ bạn" }),
   ).toBeVisible();
+  expect(
+    await page.evaluate(() => localStorage.getItem("booking.session")),
+  ).toBeNull();
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Đăng nhập ↗" })).toBeVisible();
 });
 
 test("Next.js supports direct links, legacy hashes and unknown-route 404", async ({
@@ -255,6 +270,9 @@ test("unauthorized profile clears session", async ({ page }) => {
   await login(page);
   await expect(page.getByRole("status")).toContainText("không còn hợp lệ");
   await expect(page.getByRole("button", { name: "Đăng nhập ↗" })).toBeVisible();
+  expect(
+    await page.evaluate(() => localStorage.getItem("booking.session")),
+  ).toBeNull();
 });
 test("token expiry requires signing in again", async ({ page }) => {
   await page.route("**/api/v1/auth/login", (route) =>
@@ -275,6 +293,115 @@ test("token expiry requires signing in again", async ({ page }) => {
     "Phiên đăng nhập đã hết hạn",
   );
   await expect(page.getByRole("button", { name: "Đăng nhập ↗" })).toBeVisible();
+  expect(
+    await page.evaluate(() => localStorage.getItem("booking.session")),
+  ).toBeNull();
+});
+
+test("expired or corrupt stored sessions are discarded without sending a token", async ({
+  page,
+}) => {
+  let requests = 0;
+  await page.route("**/api/v1/auth/me", (route) => {
+    requests++;
+    return route.fulfill({ json: user });
+  });
+  for (const value of [
+    "invalid json",
+    JSON.stringify({ token: "expired", expiresAt: 1 }),
+    JSON.stringify({ token: 123, expiresAt: Date.now() + 60000 }),
+  ]) {
+    await page.addInitScript(
+      (value) => localStorage.setItem("booking.session", value),
+      value,
+    );
+    await page.goto("/profile");
+    await expect(
+      page.getByRole("button", { name: "Đăng nhập ↗" }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(() => localStorage.getItem("booking.session")),
+    ).toBeNull();
+  }
+  expect(requests).toBe(0);
+});
+
+test("401 on a booking API clears the restored session", async ({ page }) => {
+  await page.addInitScript(() =>
+    localStorage.setItem(
+      "booking.session",
+      JSON.stringify({ token: "revoked-token", expiresAt: Date.now() + 60000 }),
+    ),
+  );
+  await page.route("**/api/v1/auth/me", (route) =>
+    route.fulfill({ json: user }),
+  );
+  await page.route("**/api/v1/bookings?*", (route) =>
+    route.fulfill({ status: 401, json: { error: "Invalid token" } }),
+  );
+  await page.goto("/trips");
+  await expect(page.getByRole("button", { name: "Đăng nhập ↗" })).toBeVisible();
+  expect(
+    await page.evaluate(() => localStorage.getItem("booking.session")),
+  ).toBeNull();
+});
+
+test("logout synchronizes across tabs", async ({ page, context }) => {
+  await page.goto("/profile");
+  await page.evaluate(() =>
+    localStorage.setItem(
+      "booking.session",
+      JSON.stringify({ token: "shared-token", expiresAt: Date.now() + 60000 }),
+    ),
+  );
+  await context.route("**/api/v1/auth/me", (route) =>
+    route.fulfill({ json: user }),
+  );
+  await page.reload();
+  await expect(
+    page.locator("dd").filter({ hasText: user.email }),
+  ).toBeVisible();
+  const other = await context.newPage();
+  await other.goto("/profile");
+  await expect(
+    other.locator("dd").filter({ hasText: user.email }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Đăng xuất", exact: true }).click();
+  await expect(
+    other.getByRole("button", { name: "Đăng nhập ↗" }),
+  ).toBeVisible();
+  expect(
+    await other.evaluate(() => localStorage.getItem("booking.session")),
+  ).toBeNull();
+  await other.close();
+});
+
+test("login still works when localStorage is blocked", async ({ page }) => {
+  await page.addInitScript(() => {
+    Storage.prototype.setItem = () => {
+      throw new DOMException("Blocked", "SecurityError");
+    };
+    Storage.prototype.getItem = () => {
+      throw new DOMException("Blocked", "SecurityError");
+    };
+  });
+  await page.route("**/api/v1/auth/login", (route) =>
+    route.fulfill({
+      json: {
+        access_token: "memory-token",
+        token_type: "Bearer",
+        expires_in: 3600,
+      },
+    }),
+  );
+  await page.route("**/api/v1/auth/me", (route) =>
+    route.fulfill({ json: user }),
+  );
+  await page.goto("/profile");
+  await login(page);
+  await expect(
+    page.locator("dd").filter({ hasText: user.email }),
+  ).toBeVisible();
 });
 test("desktop and mobile preview", async ({ page }, testInfo) => {
   await page.goto("/");

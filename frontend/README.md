@@ -12,7 +12,9 @@ Mở http://127.0.0.1:5173. Chạy Go backend tại cổng 8080; Next.js chuyể
 - `BACKEND_ORIGIN`: địa chỉ backend trên server, mặc định `http://127.0.0.1:8080`. Rewrite production được xác định khi build; đổi biến này cần build lại.
 - `NEXT_PUBLIC_API_BASE_URL`: URL công khai cho browser, mặc định `/api/v1`, được nhúng lúc build. Không đặt secret trong biến `NEXT_PUBLIC_*`.
 
-Pages Router sinh sẵn các route `/`, `/saved`, `/trips`, `/profile`, `/manage`, `/admin`; đường dẫn ngoài danh sách trả 404. Link hash cũ như `/#manage` tự chuyển sang `/manage`. Trang dùng chung component để giữ phiên đăng nhập trong bộ nhớ khi điều hướng bằng Next router; tải lại trang vẫn cần đăng nhập lại. URL admin chỉ là đường dẫn UI; backend kiểm tra quyền trên mỗi request.
+Pages Router sinh sẵn các route `/`, `/saved`, `/trips`, `/profile`, `/manage`, `/admin`; đường dẫn ngoài danh sách trả 404. Link hash cũ như `/#manage` tự chuyển sang `/manage`. URL admin chỉ là đường dẫn UI; backend kiểm tra quyền trên mỗi request.
+
+Phiên đăng nhập được lưu vào localStorage dưới key `booking.session`, gồm access token và thời điểm hết hạn. Sau F5/mở lại trang, frontend đọc phiên còn hạn và gọi `/auth/me` để lấy thông tin user. Đăng xuất được đồng bộ giữa các tab; token hết hạn hoặc API dùng bearer token trả 401 sẽ xóa phiên. Dữ liệu phiên lỗi/hết hạn bị loại bỏ, lỗi mạng không tự xóa phiên. Nếu browser chặn storage, đăng nhập vẫn hoạt động trong bộ nhớ nhưng không giữ sau F5. Chưa có refresh token; JavaScript có thể đọc token trong localStorage, nên cần phòng tránh XSS.
 
 Các phần tương tác hiện tại (đăng nhập, lưu yêu thích, tìm khách sạn, đặt/hủy, quản lý và admin) chạy phía client qua dynamic import `ssr: false`. Next.js sinh HTML metadata và trạng thái loading; dữ liệu khách sạn được lấy từ Go API trên browser, chưa render bằng SSR. Global CSS và metadata chung được khai báo trong `src/pages/_app.tsx`; HTML tiếng Việt ở `_document.tsx`.
 
