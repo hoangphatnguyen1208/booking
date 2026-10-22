@@ -1691,3 +1691,12 @@ dialog.hotel-detail-dialog {
 .stay-art {
   isolation: isolate;
 }
+.detail-save-actions {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #dce5dc;
+}
+.detail-save-actions button {
+  width: 100%;
+  min-height: 44px;
+}

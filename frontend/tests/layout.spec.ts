@@ -190,6 +190,19 @@ test("all routes and management workspace fit narrow and wide screens", async ({
         await expect(page.getByRole("dialog")).toContainText(
           "Kiểm tra phòng trống",
         );
+        await expect
+          .poll(() =>
+            page.getByRole("dialog").evaluate((dialog) => {
+              const booking = dialog
+                .querySelector(".booking-panel")!
+                .getBoundingClientRect();
+              const save = dialog
+                .querySelector(".detail-save-actions button")!
+                .getBoundingClientRect();
+              return save.top - booking.bottom;
+            }),
+          )
+          .toBeGreaterThanOrEqual(40);
         await page
           .getByRole("button", { name: "Kiểm tra phòng trống", exact: true })
           .click();

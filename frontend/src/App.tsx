@@ -897,11 +897,16 @@ export default function App({ page }: { page: Page }) {
                 }}
               />
             )}
-            <button className="primary" onClick={() => toggleSaved(detail.id)}>
-              {saved.includes(detail.id)
-                ? "Bỏ lưu nơi ở"
-                : "Lưu cho chuyến đi sau"}
-            </button>
+            <div className="detail-save-actions">
+              <button
+                className="outline"
+                onClick={() => toggleSaved(detail.id)}
+              >
+                {saved.includes(detail.id)
+                  ? "Bỏ lưu nơi ở"
+                  : "Lưu cho chuyến đi sau"}
+              </button>
+            </div>
           </>
         )}
       </dialog>
