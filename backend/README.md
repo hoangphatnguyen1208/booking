@@ -18,17 +18,24 @@ API mặc định ở `127.0.0.1:8080`. Compose tự cấu hình `DB_STR` đến
 
 ## Thêm dữ liệu mẫu hàng loạt
 
-### Một script tạo admin và import dữ liệu
+### Một lệnh Go tạo admin và import dữ liệu
 
-Sau khi CI publish image mới, tải script vào thư mục Compose trên VPS và chạy:
+Sau khi CI publish image mới, chạy trong thư mục Compose trên VPS:
 
 ```sh
 cd ~/booking
-curl -fsSL https://raw.githubusercontent.com/hoangphatnguyen1208/booking/master/backend/scripts/bootstrap.sh -o bootstrap.sh
-bash bootstrap.sh hoangphatnguyen1208@gmail.com 20 90
+docker compose pull backend
+docker compose up -d --no-build --wait backend
+docker compose exec backend /app/bootstrap -email hoangphatnguyen1208@gmail.com -hotels 20 -days 90
 ```
 
-Script pull image, chờ backend sẵn sàng, tạo tài khoản nếu chưa có (nhập mật khẩu khi được hỏi, không hiện trên terminal), cấp admin rồi import khách sạn/phòng/tồn. Tài khoản đã tồn tại sẽ giữ nguyên mật khẩu và được cấp admin; chạy lại không tạo trùng dữ liệu mẫu. Script dùng Compose và `.env` có sẵn trong thư mục đang đứng; không cần clone source trên VPS. Nếu seed lỗi, lượt seed rollback nhưng quyền admin đã cấp vẫn giữ nguyên; sửa lỗi và chạy lại script. Đăng nhập lại sau khi hoàn tất để tải quyền admin mới.
+Lệnh Go tạo tài khoản nếu chưa có (nhập mật khẩu khi được hỏi, không hiện trên terminal), cấp admin rồi import khách sạn/phòng/tồn. Tài khoản đã tồn tại giữ nguyên mật khẩu; chạy lại không tạo trùng dữ liệu mẫu. Toàn bộ phần tạo user/cấp quyền/import nằm trong một transaction: có lỗi sẽ rollback tất cả thay đổi của lượt chạy. Dùng Compose và `.env` sẵn có; không cần clone source trên VPS. Đăng nhập lại sau khi hoàn tất để tải quyền admin mới.
+
+Chạy trực tiếp từ thư mục `backend` với `.env` trỏ đúng database:
+
+```sh
+go run ./cmd/bootstrap -email hoangphatnguyen1208@gmail.com -hotels 20 -days 90
+```
 
 ### Chỉ import dữ liệu cho tài khoản đã có
 
