@@ -34,7 +34,7 @@ Bản Compose bind web vào localhost; để triển khai public, đặt TLS rev
 
 ## VPS chỉ chạy backend
 
-Dùng [compose.backend.yaml](compose.backend.yaml), gồm backend từ Docker Hub và PostgreSQL với volume lưu dữ liệu, healthcheck và tự khởi động lại. Đặt nội dung file này thành `~/booking/compose.yaml` trên VPS, cùng `.env` theo [.env.example](.env.example), rồi chạy:
+Dùng [backend/compose.yaml](backend/compose.yaml), gồm backend từ Docker Hub và PostgreSQL với volume lưu dữ liệu, healthcheck và tự khởi động lại. Compose ở root vẫn chạy toàn bộ frontend và backend. Đặt nội dung file backend này thành `~/booking/compose.yaml` trên VPS, cùng `.env` theo [backend/.env.example](backend/.env.example), rồi chạy:
 
 ```sh
 cd ~/booking

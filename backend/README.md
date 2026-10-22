@@ -2,6 +2,20 @@
 
 Run PostgreSQL and configure `.env` before starting the backend.
 
+## Backend-only Docker Compose
+
+`compose.yaml` trong thư mục này chạy backend từ Docker Hub và PostgreSQL. Compose ở root chạy cả frontend và backend.
+
+```sh
+cd backend
+cp .env.example .env
+# Đặt POSTGRES_PASSWORD và JWT_SECRET thật trong .env.
+docker compose pull
+docker compose up -d --wait
+```
+
+API mặc định ở `127.0.0.1:8080`. Compose tự cấu hình `DB_STR` đến service `db`; biến `DB_STR` trong `.env.example` dành cho chạy Go trực tiếp trên host. Trên VPS, đặt file Compose này và `.env` vào `~/booking` để khớp CD hiện tại. Giữ nguyên mật khẩu DB đã khởi tạo và không xóa volume dữ liệu khi cập nhật.
+
 ## Development with live reload (Windows)
 
 Install Air once:
