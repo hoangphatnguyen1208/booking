@@ -4,7 +4,10 @@ export default function Document() {
   return (
     <Html lang="vi">
       <Head />
-      <body><Main /><NextScript /></body>
+      <body>
+        <Main />
+        <NextScript />
+      </body>
     </Html>
   );
 }

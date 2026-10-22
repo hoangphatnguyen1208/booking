@@ -8,7 +8,10 @@ export default function BookingApplication({ Component, pageProps }: AppProps) {
     <>
       <Head>
         <title>booking. — Một nơi dành cho bạn</title>
-        <meta name="description" content="Khám phá những nơi ở đẹp cùng booking. Đăng nhập, lưu cảm hứng và chuẩn bị cho hành trình tiếp theo." />
+        <meta
+          name="description"
+          content="Khám phá những nơi ở đẹp cùng booking. Đăng nhập, lưu cảm hứng và chuẩn bị cho hành trình tiếp theo."
+        />
         <meta name="theme-color" content="#2d5846" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />

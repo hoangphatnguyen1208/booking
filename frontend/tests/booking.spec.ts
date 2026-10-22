@@ -110,6 +110,7 @@ test("search, category, favorite persistence and detail dialog", async ({
     .getByRole("button", { name: "Lưu The Coast House", exact: true })
     .click();
   await page.getByRole("button", { name: /Đã lưu/ }).click();
+  await expect(page).toHaveURL(/\/saved$/);
   await expect(page.locator(".stay-card")).toHaveCount(1);
   await page.reload();
   await page.getByRole("button", { name: /Đã lưu/ }).click();
@@ -146,7 +147,9 @@ test("registration validates password and switches to login after success", asyn
   await page.getByLabel("Email", { exact: true }).fill(user.email);
   await page.getByLabel("Mật khẩu", { exact: true }).fill("short");
   await page.getByRole("button", { name: "Tạo tài khoản →" }).click();
-  await expect(page.getByRole("alert")).toContainText("ít nhất 8 ký tự");
+  await expect(page.locator(".app-shell").getByRole("alert")).toContainText(
+    "ít nhất 8 ký tự",
+  );
   await page.getByLabel("Mật khẩu", { exact: true }).fill("test-password");
   await page.getByRole("button", { name: "Tạo tài khoản →" }).click();
   await expect(page.getByRole("dialog")).toContainText("Chào mừng bạn trở lại");
@@ -172,10 +175,18 @@ test("login uses bearer token, profile loads and logout clears access", async ({
   await page.goto("/");
   await login(page);
   await page.getByRole("button", { name: "Tài khoản", exact: true }).click();
+  await expect(page).toHaveURL(/\/profile$/);
   await expect(
     page.locator("dd").filter({ hasText: user.email }),
   ).toBeVisible();
   expect(authorization).toBe("Bearer test-token");
+  await page.getByRole("button", { name: /Đã lưu/ }).click();
+  await expect(page).toHaveURL(/\/saved$/);
+  await page.goBack();
+  await expect(page).toHaveURL(/\/profile$/);
+  await expect(
+    page.locator("dd").filter({ hasText: user.email }),
+  ).toBeVisible();
   expect(await page.evaluate(() => Object.keys(localStorage))).toEqual([
     "booking.saved",
   ]);
@@ -183,6 +194,29 @@ test("login uses bearer token, profile loads and logout clears access", async ({
   await expect(
     page.getByRole("heading", { name: "Mỗi hành trình bắt đầu từ bạn" }),
   ).toBeVisible();
+});
+
+test("Next.js supports direct links, legacy hashes and unknown-route 404", async ({
+  page,
+}) => {
+  await page.goto("/saved");
+  await expect(
+    page.getByRole("heading", { name: "Những nơi bạn yêu thích" }),
+  ).toBeVisible();
+  await expect(page).toHaveTitle("Những nơi bạn yêu thích · booking.");
+  await page.reload();
+  await expect(page.getByRole("button", { name: /Đã lưu/ })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  await page.goto("/#manage");
+  await expect(page).toHaveURL(/\/manage$/);
+  await expect(page.getByRole("button", { name: /Quản lý/ })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  const response = await page.goto("/unknown/route");
+  expect(response?.status()).toBe(404);
 });
 test("invalid login and network failure show recoverable errors", async ({
   page,
@@ -192,12 +226,12 @@ test("invalid login and network failure show recoverable errors", async ({
   );
   await page.goto("/");
   await login(page);
-  await expect(page.getByRole("alert")).toContainText(
+  await expect(page.locator(".app-shell").getByRole("alert")).toContainText(
     "Email hoặc mật khẩu không đúng",
   );
   await page.route("**/api/v1/auth/login", (route) => route.abort());
   await page.getByRole("button", { name: "Đăng nhập →", exact: true }).click();
-  await expect(page.getByRole("alert")).toContainText(
+  await expect(page.locator(".app-shell").getByRole("alert")).toContainText(
     "Không kết nối được máy chủ",
   );
   await expect(
@@ -256,7 +290,9 @@ test("hotel list failure can retry and empty database stays empty", async ({
 }) => {
   await page.route("**/api/v1/hotels?*", (route) => route.abort());
   await page.goto("/");
-  await expect(page.getByRole("alert")).toContainText("Không kết nối");
+  await expect(page.locator(".app-shell").getByRole("alert")).toContainText(
+    "Không kết nối",
+  );
   await expect(page.locator(".stay-card")).toHaveCount(0);
   await page.route("**/api/v1/hotels?*", (route) =>
     route.fulfill({ json: { items: [], page: 1, limit: 20 } }),

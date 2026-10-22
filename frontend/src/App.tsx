@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
+import { useRouter } from "next/router";
+import { pages, pagePath } from "./navigation";
+import type { Page } from "./navigation";
 import { api, ApiError } from "./api";
 import type { User } from "./api";
 import { toStay, localDate, readSaved } from "./catalog";
@@ -10,7 +13,6 @@ import AdminPanel from "./AdminPanel";
 import { bookingApi } from "./booking-api";
 import type { Stay } from "./catalog";
 
-type Page = "explore" | "saved" | "trips" | "profile" | "manage" | "admin";
 const navigation = [
   ["explore", "⌘", "Khám phá"],
   ["saved", "♡", "Đã lưu"],
@@ -50,24 +52,26 @@ function Artwork({ stay }: { stay: Stay }) {
   );
 }
 
-export default function App() {
-  const [page, setPage] = useState<Page>(() => {
-    const p = location.hash.slice(1);
-    return navigation.some((item) => item[0] === p) ? (p as Page) : "explore";
-  });
+export default function App({ page }: { page: Page }) {
+  const router = useRouter();
+  function setPage(next: Page) {
+    void router.push(pagePath(next), undefined, { scroll: false });
+  }
   const [searchParams, setSearchParams] = useState<Record<string, string>>({});
   const [searchGuests, setSearchGuests] = useState("2");
   useEffect(() => {
     const change = () => {
-      const p = location.hash.slice(1);
-      if (navigation.some((item) => item[0] === p)) setPage(p as Page);
+      const legacy = window.location.hash.slice(1);
+      if (pages.includes(legacy as Page)) {
+        void router.replace(pagePath(legacy as Page), undefined, {
+          scroll: false,
+        });
+      }
     };
+    change();
     window.addEventListener("hashchange", change);
     return () => window.removeEventListener("hashchange", change);
-  }, []);
-  useEffect(() => {
-    if (location.hash.slice(1) !== page) location.hash = page;
-  }, [page]);
+  }, [router]);
   const [saved, setSaved] = useState(readSaved);
   const [stays, setStays] = useState<Stay[]>([]);
   const [savedStays, setSavedStays] = useState<Stay[]>([]);
@@ -330,7 +334,7 @@ export default function App() {
       <aside className="sidebar">
         <a
           className="brand"
-          href="#"
+          href="/"
           onClick={(event) => {
             event.preventDefault();
             resetExplore();
