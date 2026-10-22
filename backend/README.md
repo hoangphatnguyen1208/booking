@@ -16,6 +16,25 @@ docker compose up -d --wait
 
 API mặc định ở `127.0.0.1:8080`. Compose tự cấu hình `DB_STR` đến service `db`; biến `DB_STR` trong `.env.example` dành cho chạy Go trực tiếp trên host. Trên VPS, đặt file Compose này và `.env` vào `~/booking` để khớp CD hiện tại. Giữ nguyên mật khẩu DB đã khởi tạo và không xóa volume dữ liệu khi cập nhật.
 
+## Thêm dữ liệu mẫu hàng loạt
+
+Tài khoản owner phải đăng ký trước. Lệnh dưới tạo 20 khách sạn mẫu ở 10 thành phố Việt Nam, 3 loại phòng/khách sạn (10 Standard, 6 Deluxe, 4 Family), giá VND và tồn phòng trong 90 ngày tính từ hôm nay theo giờ Việt Nam:
+
+```sh
+cd ~/booking
+docker compose pull backend
+docker compose up -d --no-build backend
+docker compose exec -T backend /app/seed -owner-email hoangphatnguyen1208@gmail.com
+```
+
+Chạy từ source với `backend/.env` trỏ đúng database:
+
+```sh
+go run ./cmd/seed -owner-email hoangphatnguyen1208@gmail.com -hotels 20 -days 90
+```
+
+Có thể đặt `-from YYYY-MM-DD` (ngày bắt đầu, bao gồm). Ngày kết thúc là ngày loại trừ. Seed dùng slug `booking-demo-001`..., tên có hậu tố `(Mẫu)`, địa chỉ là dữ liệu giả. Seed gán owner nhưng không cấp admin hoặc tạo tài khoản/mật khẩu. Chạy lại bỏ qua toàn bộ hotel có slug đã tồn tại (kể cả đã archive); không cập nhật giá/tồn, đặt lại reserved hoặc gia hạn lịch cũ. Mỗi lượt chạy nằm trong một transaction; có lỗi sẽ rollback. Lệnh chỉ chạy khi được gọi, không tự seed lúc server khởi động.
+
 ## Development with live reload (Windows)
 
 Install Air once:
