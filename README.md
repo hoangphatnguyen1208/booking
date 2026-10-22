@@ -139,7 +139,7 @@ npm test -- tests/live.spec.ts --workers=1
 
 Live tests tạo tài khoản, khách sạn, phòng, tồn và booking trong database backend; dữ liệu .test được giữ để xem kết quả. Không chạy RUN_LIVE trên production. Không chạy hai Playwright invocation đồng thời cùng thư mục test-results.
 
-CI chạy backend với PostgreSQL, frontend mock tests, và end-to-end với backend thật.
+CI chạy backend tests với PostgreSQL, kiểm tra container backend và frontend build/lint. Next.js build kiểm tra TypeScript; browser tests và live end-to-end giữ để chạy thủ công khi cần, không cài Chromium trong CI.
 
 ## API chính
 
