@@ -489,6 +489,9 @@ test("management creates updates and deletes using authenticated API", async ({
   await page.goto("/");
   await login(page);
   await page.getByRole("button", { name: "Quản lý", exact: true }).click();
+  await page
+    .getByRole("button", { name: "+ Thêm khách sạn", exact: true })
+    .click();
   await page.getByLabel("Tên khách sạn", { exact: true }).fill("Hotel mới");
   await page.getByLabel("Slug", { exact: true }).fill("hotel-moi");
   await page.getByLabel("Thành phố", { exact: true }).fill("Huế");

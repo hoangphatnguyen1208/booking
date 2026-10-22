@@ -837,6 +837,7 @@ export default function App({ page }: { page: Page }) {
         </button>
       </dialog>
       <dialog
+        className="hotel-detail-dialog"
         ref={detailDialog}
         onCancel={closeDetail}
         onClose={closeDetail}

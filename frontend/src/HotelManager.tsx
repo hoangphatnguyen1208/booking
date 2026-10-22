@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { api, ApiError } from "./api";
 import type { Hotel, HotelInput } from "./api";
@@ -26,6 +26,8 @@ export default function HotelManager({
   onChanged: () => void;
   onUnauthorized: () => void;
 }) {
+  const formRef = useRef<HTMLFormElement>(null);
+  const [showForm, setShowForm] = useState(false);
   const [items, setItems] = useState<Hotel[]>([]);
   const [workspace, setWorkspace] = useState<Hotel | null>(null);
   const [page, setPage] = useState(1);
@@ -94,6 +96,7 @@ export default function HotelManager({
       else await api.createHotel(token, payload);
       setMessage(editing ? "Đã cập nhật khách sạn." : "Đã tạo khách sạn.");
       setEditing(null);
+      setShowForm(false);
       setInput(blank);
       setRefresh((value) => value + 1);
       onChanged();
@@ -134,9 +137,45 @@ export default function HotelManager({
         </button>
       </div>
     );
+  if (workspace)
+    return (
+      <section className="management-page">
+        <button
+          className="outline"
+          aria-label="Đóng quản lý phòng"
+          onClick={() => setWorkspace(null)}
+        >
+          ← Quay lại danh sách
+        </button>
+        <header className="page-heading">
+          <div>
+            <h1>{workspace.name}</h1>
+            <p>
+              {workspace.city}, {workspace.country} · Quản lý vận hành
+            </p>
+          </div>
+        </header>
+        <HotelWorkspace key={workspace.id} token={token} id={workspace.id} />
+      </section>
+    );
   return (
-    <section>
-      <h1>Quản lý khách sạn</h1>
+    <section className="management-page">
+      <header className="page-heading">
+        <div>
+          <h1>Quản lý khách sạn</h1>
+          <p>Thông tin khách sạn, phòng và đội ngũ của bạn.</p>
+        </div>
+        <button
+          className="primary"
+          onClick={() => {
+            setEditing(null);
+            setInput(blank);
+            setShowForm(true);
+          }}
+        >
+          + Thêm khách sạn
+        </button>
+      </header>
       {message && (
         <div className="notice" role="status">
           {message}
@@ -147,93 +186,105 @@ export default function HotelManager({
           {error}
         </p>
       )}
-      <form className="hotel-form profile-card" onSubmit={save}>
-        <h2>{editing ? "Sửa khách sạn" : "Tạo khách sạn"}</h2>
-        <fieldset disabled={busy}>
-          {(
-            [
-              ["name", "Tên khách sạn", 100],
-              ["slug", "Slug", 100],
-              ["address", "Địa chỉ", 255],
-              ["city", "Thành phố", 100],
-              ["country", "Quốc gia", 100],
-            ] as const
-          ).map(([key, label, max]) => (
-            <label key={key}>
-              {label}
-              <input
-                name={key}
-                value={input[key]}
-                maxLength={max}
-                required={key !== "address"}
-                pattern={key === "slug" ? "[a-z0-9]+(-[a-z0-9]+)*" : undefined}
+      {showForm && (
+        <form ref={formRef} className="hotel-form profile-card" onSubmit={save}>
+          <h2>{editing ? "Sửa khách sạn" : "Tạo khách sạn"}</h2>
+          <fieldset disabled={busy}>
+            {(
+              [
+                ["name", "Tên khách sạn", 100],
+                ["slug", "Slug", 100],
+                ["address", "Địa chỉ", 255],
+                ["city", "Thành phố", 100],
+                ["country", "Quốc gia", 100],
+              ] as const
+            ).map(([key, label, max]) => (
+              <label key={key}>
+                {label}
+                <input
+                  name={key}
+                  value={input[key]}
+                  maxLength={max}
+                  required={key !== "address"}
+                  pattern={
+                    key === "slug" ? "[a-z0-9]+(-[a-z0-9]+)*" : undefined
+                  }
+                  onChange={(event) =>
+                    setInput({ ...input, [key]: event.target.value })
+                  }
+                />
+              </label>
+            ))}
+            <label>
+              Hạng sao
+              <select
+                value={input.rank}
                 onChange={(event) =>
-                  setInput({ ...input, [key]: event.target.value })
+                  setInput({ ...input, rank: Number(event.target.value) })
+                }
+              >
+                {[0, 1, 2, 3, 4, 5].map((rank) => (
+                  <option key={rank} value={rank}>
+                    {rank ? `${rank} sao` : "Chưa xếp hạng"}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Ảnh đại diện (URL HTTPS)
+              <input
+                type="url"
+                value={input.image_url || ""}
+                maxLength={2048}
+                onChange={(e) =>
+                  setInput({ ...input, image_url: e.target.value })
                 }
               />
             </label>
-          ))}
-          <label>
-            Hạng sao
-            <select
-              value={input.rank}
-              onChange={(event) =>
-                setInput({ ...input, rank: Number(event.target.value) })
+            <label>
+              Tiện nghi (phân cách bằng dấu phẩy)
+              <input
+                value={(input.amenities || []).join(", ")}
+                onChange={(e) =>
+                  setInput({
+                    ...input,
+                    amenities: e.target.value
+                      .split(",")
+                      .map((value) => value.trim()),
+                  })
+                }
+              />
+            </label>
+            <div className="form-actions">
+              <button className="primary" type="submit">
+                {busy
+                  ? "Đang xử lý…"
+                  : editing
+                    ? "Lưu thay đổi"
+                    : "Tạo khách sạn"}
+              </button>
+              {
+                <button
+                  className="outline"
+                  type="button"
+                  onClick={() => {
+                    setEditing(null);
+                    setShowForm(false);
+                    setInput(blank);
+                  }}
+                >
+                  {editing ? "Hủy sửa" : "Hủy"}
+                </button>
               }
-            >
-              {[0, 1, 2, 3, 4, 5].map((rank) => (
-                <option key={rank} value={rank}>
-                  {rank ? `${rank} sao` : "Chưa xếp hạng"}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Ảnh đại diện (URL HTTPS)
-            <input
-              type="url"
-              value={input.image_url || ""}
-              maxLength={2048}
-              onChange={(e) =>
-                setInput({ ...input, image_url: e.target.value })
-              }
-            />
-          </label>
-          <label>
-            Tiện nghi (phân cách bằng dấu phẩy)
-            <input
-              value={(input.amenities || []).join(", ")}
-              onChange={(e) =>
-                setInput({
-                  ...input,
-                  amenities: e.target.value
-                    .split(",")
-                    .map((value) => value.trim()),
-                })
-              }
-            />
-          </label>
-          <button className="primary" type="submit">
-            {busy ? "Đang xử lý…" : editing ? "Lưu thay đổi" : "Tạo khách sạn"}
-          </button>
-          {editing && (
-            <button
-              className="outline"
-              type="button"
-              onClick={() => {
-                setEditing(null);
-                setInput(blank);
-              }}
-            >
-              Hủy sửa
-            </button>
-          )}
-        </fieldset>
-      </form>
+            </div>
+          </fieldset>
+        </form>
+      )}
       {removing && (
         <div className="delete-confirm" role="alert">
           <p>
-            Xóa khách sạn “{removing.name}”? Thao tác này không thể hoàn tác.
+            Xóa khách sạn “{removing.name}”? Khách sạn sẽ được ẩn khỏi danh sách
+            đặt phòng.
           </p>
           <button
             className="primary"
@@ -258,51 +309,80 @@ export default function HotelManager({
           <div className="management-list">
             {items.map((hotel) => (
               <article key={hotel.id}>
-                <button
-                  className="outline"
-                  disabled={busy}
-                  onClick={() => setWorkspace(hotel)}
-                >
-                  Phòng và nhân sự {hotel.name}
-                </button>
-                <div>
-                  <strong>{hotel.name}</strong>
-                  <p>
-                    {hotel.city}, {hotel.country} · {hotel.slug}
-                  </p>
+                <div className="management-info">
+                  <span className="hotel-mark" aria-hidden="true">
+                    {hotel.name.charAt(0)}
+                  </span>
+                  <div>
+                    <h3>{hotel.name}</h3>
+                    <p>
+                      {hotel.city}, {hotel.country}
+                      {hotel.rank ? ` · ${hotel.rank} sao` : ""}
+                    </p>
+                    <small>{hotel.slug}</small>
+                  </div>
                 </div>
-                <button
-                  className="outline"
-                  disabled={busy}
-                  onClick={() => {
-                    setEditing(hotel.id);
-                    setInput({
-                      name: hotel.name,
-                      slug: hotel.slug,
-                      address: hotel.address,
-                      city: hotel.city,
-                      country: hotel.country,
-                      rank: hotel.rank,
-                      image_url: hotel.image_url || "",
-                      amenities: hotel.amenities || [],
-                    });
-                    setError("");
-                    setMessage("");
-                  }}
-                >
-                  Sửa {hotel.name}
-                </button>
-                <button
-                  className="outline"
-                  disabled={busy}
-                  onClick={() => setRemoving(hotel)}
-                >
-                  Xóa {hotel.name}
-                </button>
+                <div className="management-actions">
+                  <button
+                    className="outline"
+                    aria-label={`Phòng và nhân sự ${hotel.name}`}
+                    disabled={busy}
+                    onClick={() => {
+                      setWorkspace(hotel);
+                      window.scrollTo(0, 0);
+                    }}
+                  >
+                    Phòng & nhân sự
+                  </button>
+                  <button
+                    className="outline"
+                    disabled={busy}
+                    aria-label={`Sửa ${hotel.name}`}
+                    onClick={() => {
+                      setShowForm(true);
+                      requestAnimationFrame(() =>
+                        formRef.current?.scrollIntoView({ block: "start" }),
+                      );
+                      setEditing(hotel.id);
+                      setInput({
+                        name: hotel.name,
+                        slug: hotel.slug,
+                        address: hotel.address,
+                        city: hotel.city,
+                        country: hotel.country,
+                        rank: hotel.rank,
+                        image_url: hotel.image_url || "",
+                        amenities: hotel.amenities || [],
+                      });
+                      setError("");
+                      setMessage("");
+                    }}
+                  >
+                    Chỉnh sửa
+                  </button>
+                  <button
+                    className="outline"
+                    disabled={busy}
+                    aria-label={`Xóa ${hotel.name}`}
+                    onClick={() => {
+                      setRemoving(hotel);
+                      window.scrollTo(0, 0);
+                    }}
+                  >
+                    Xóa
+                  </button>
+                </div>
               </article>
             ))}
           </div>
-          {!items.length && <p>Chưa có khách sạn.</p>}
+          {!items.length && !error && (
+            <div className="empty-state">
+              <h2>Chưa có khách sạn</h2>
+              <p>
+                Thêm khách sạn đầu tiên để bắt đầu quản lý phòng và đặt chỗ.
+              </p>
+            </div>
+          )}
           <div className="pagination">
             <button
               className="outline"
@@ -327,15 +407,6 @@ export default function HotelManager({
               Tải lại
             </button>
           </div>
-        </>
-      )}
-      {workspace && (
-        <>
-          <button className="outline" onClick={() => setWorkspace(null)}>
-            Đóng quản lý phòng
-          </button>
-          <h2>{workspace.name}</h2>
-          <HotelWorkspace key={workspace.id} token={token} id={workspace.id} />
         </>
       )}
     </section>

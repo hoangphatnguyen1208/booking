@@ -71,8 +71,13 @@ export default function Trips({
       </div>
     );
   return (
-    <section>
-      <h1>Chuyến đi của tôi</h1>
+    <section className="management-page">
+      <header className="page-heading">
+        <div>
+          <h1>Chuyến đi của tôi</h1>
+          <p>Theo dõi đặt phòng và thông tin lưu trú của bạn.</p>
+        </div>
+      </header>
       {error && (
         <p className="error" role="alert">
           {error}
