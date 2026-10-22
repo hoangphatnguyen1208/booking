@@ -10,7 +10,8 @@
     "lint": "oxlint",
     "start": "next start --hostname 127.0.0.1 --port 5173",
     "test": "playwright test",
-    "format": "prettier --write src tests next.config.ts playwright.config.ts"
+    "format": "prettier --write src tests next.config.ts playwright.config.ts",
+    "test:ssr": "playwright test --config playwright.ssr.config.ts"
   },
   "dependencies": {
     "next": "^16.4.2",

@@ -87,15 +87,15 @@ test("stay dates use hotel timezone across the UTC midnight boundary", async ({
   );
 });
 async function login(page: Page) {
-  await page.getByRole("button", { name: "Đăng nhập ↗" }).click();
+  await page.getByRole("link", { name: "Đăng nhập ↗" }).click();
   await page.getByLabel("Email", { exact: true }).fill(user.email);
   await page.getByLabel("Mật khẩu", { exact: true }).fill("test-password");
   await page
-    .getByRole("dialog")
+    .locator(".auth-card")
     .getByRole("button", { name: "Đăng nhập →", exact: true })
     .click();
 }
-test("search, category, favorite persistence and detail dialog", async ({
+test("search, category, favorite persistence and hotel detail route", async ({
   page,
 }) => {
   await page.goto("/");
@@ -112,21 +112,23 @@ test("search, category, favorite persistence and detail dialog", async ({
   await page
     .getByRole("button", { name: "Lưu The Coast House", exact: true })
     .click();
-  await page.getByRole("button", { name: /Đã lưu/ }).click();
+  await page.getByRole("link", { name: /Đã lưu/ }).click();
   await expect(page).toHaveURL(/\/saved$/);
   await expect(page.locator(".stay-card")).toHaveCount(1);
   await page.reload();
-  await page.getByRole("button", { name: /Đã lưu/ }).click();
-  await page.getByRole("button", { name: "The Coast House ↗" }).click();
-  await expect(page.getByRole("dialog")).toContainText("Kiểm tra phòng trống");
-  await page.keyboard.press("Escape");
-  await expect(page.getByRole("dialog")).not.toBeVisible();
-  await page.getByRole("button", { name: "Khám phá", exact: true }).click();
+  await page.getByRole("link", { name: /Đã lưu/ }).click();
+  await page.getByRole("link", { name: "The Coast House ↗" }).click();
+  await expect(page.locator(".hotel-detail-page")).toContainText(
+    "Kiểm tra phòng trống",
+  );
+  await page.goBack();
+  await expect(page).toHaveURL(/\/saved$/);
+  await page.getByRole("link", { name: "Khám phá", exact: true }).click();
   await page.getByLabel("Điểm đến", { exact: true }).fill("Hội An");
   await page.getByRole("button", { name: "Tìm nơi ở" }).click();
   await expect(page.locator(".stay-card")).toHaveCount(1);
   await expect(
-    page.getByRole("button", { name: "Mây Boutique Stay ↗" }),
+    page.getByRole("link", { name: "Mây Boutique Stay ↗" }),
   ).toBeVisible();
   await page.getByLabel("Điểm đến", { exact: true }).fill("Không tồn tại");
   await page.getByRole("button", { name: "Tìm nơi ở" }).click();
@@ -143,10 +145,15 @@ test("registration validates password and switches to login after success", asyn
     await route.fulfill({ json: user });
   });
   await page.goto("/");
-  await page.getByRole("button", { name: "Đăng nhập ↗" }).click();
-  await page
-    .getByRole("button", { name: "Chưa có tài khoản? Đăng ký" })
-    .click();
+  await page.getByRole("link", { name: "Đăng nhập ↗" }).click();
+  await page.getByRole("link", { name: "Chưa có tài khoản? Đăng ký" }).click();
+  await expect(
+    page.getByRole("heading", {
+      name: "Bắt đầu một hành trình mới",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(page).toHaveURL(/\/register\?/);
   await page.getByLabel("Email", { exact: true }).fill(user.email);
   await page.getByLabel("Mật khẩu", { exact: true }).fill("short");
   await page.getByRole("button", { name: "Tạo tài khoản →" }).click();
@@ -155,7 +162,9 @@ test("registration validates password and switches to login after success", asyn
   );
   await page.getByLabel("Mật khẩu", { exact: true }).fill("test-password");
   await page.getByRole("button", { name: "Tạo tài khoản →" }).click();
-  await expect(page.getByRole("dialog")).toContainText("Chào mừng bạn trở lại");
+  await expect(page.locator(".auth-card")).toContainText(
+    "Chào mừng bạn trở lại",
+  );
   expect(payload).toEqual({ email: user.email, password: "test-password" });
 });
 test("login uses bearer token, profile loads and logout clears access", async ({
@@ -177,7 +186,7 @@ test("login uses bearer token, profile loads and logout clears access", async ({
   });
   await page.goto("/");
   await login(page);
-  await page.getByRole("button", { name: "Tài khoản", exact: true }).click();
+  await page.getByRole("link", { name: "Tài khoản", exact: true }).click();
   await expect(page).toHaveURL(/\/profile$/);
   await expect(
     page.locator("dd").filter({ hasText: user.email }),
@@ -188,7 +197,7 @@ test("login uses bearer token, profile loads and logout clears access", async ({
     page.locator("dd").filter({ hasText: user.email }),
   ).toBeVisible();
   expect(authorization).toBe("Bearer test-token");
-  await page.getByRole("button", { name: /Đã lưu/ }).click();
+  await page.getByRole("link", { name: /Đã lưu/ }).click();
   await expect(page).toHaveURL(/\/saved$/);
   await page.goBack();
   await expect(page).toHaveURL(/\/profile$/);
@@ -208,7 +217,7 @@ test("login uses bearer token, profile loads and logout clears access", async ({
     await page.evaluate(() => localStorage.getItem("booking.session")),
   ).toBeNull();
   await page.reload();
-  await expect(page.getByRole("button", { name: "Đăng nhập ↗" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Đăng nhập ↗" })).toBeVisible();
 });
 
 test("Next.js supports direct links, legacy hashes and unknown-route 404", async ({
@@ -220,16 +229,15 @@ test("Next.js supports direct links, legacy hashes and unknown-route 404", async
   ).toBeVisible();
   await expect(page).toHaveTitle("Những nơi bạn yêu thích · booking.");
   await page.reload();
-  await expect(page.getByRole("button", { name: /Đã lưu/ })).toHaveAttribute(
+  await expect(page.getByRole("link", { name: /Đã lưu/ })).toHaveAttribute(
     "aria-current",
     "page",
   );
   await page.goto("/#manage");
   await expect(page).toHaveURL(/\/manage$/);
-  await expect(page.getByRole("button", { name: /Quản lý/ })).toHaveAttribute(
-    "aria-current",
-    "page",
-  );
+  await expect(
+    page.getByRole("link", { name: "Quản lý", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
   const response = await page.goto("/unknown/route");
   expect(response?.status()).toBe(404);
 });
@@ -268,8 +276,10 @@ test("unauthorized profile clears session", async ({ page }) => {
   );
   await page.goto("/");
   await login(page);
-  await expect(page.getByRole("status")).toContainText("không còn hợp lệ");
-  await expect(page.getByRole("button", { name: "Đăng nhập ↗" })).toBeVisible();
+  await expect(page.locator(".notice[role=status]")).toContainText(
+    "không còn hợp lệ",
+  );
+  await expect(page.getByRole("link", { name: "Đăng nhập ↗" })).toBeVisible();
   expect(
     await page.evaluate(() => localStorage.getItem("booking.session")),
   ).toBeNull();
@@ -289,10 +299,10 @@ test("token expiry requires signing in again", async ({ page }) => {
   );
   await page.goto("/");
   await login(page);
-  await expect(page.getByRole("status")).toContainText(
+  await expect(page.locator(".notice[role=status]")).toContainText(
     "Phiên đăng nhập đã hết hạn",
   );
-  await expect(page.getByRole("button", { name: "Đăng nhập ↗" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Đăng nhập ↗" })).toBeVisible();
   expect(
     await page.evaluate(() => localStorage.getItem("booking.session")),
   ).toBeNull();
@@ -316,9 +326,11 @@ test("expired or corrupt stored sessions are discarded without sending a token",
       value,
     );
     await page.goto("/profile");
-    await expect(
-      page.getByRole("button", { name: "Đăng nhập ↗" }),
-    ).toBeVisible();
+    await expect(page.locator(".app-shell")).toHaveAttribute(
+      "data-session-ready",
+      "true",
+    );
+    await expect(page.getByRole("link", { name: "Đăng nhập ↗" })).toBeVisible();
     expect(
       await page.evaluate(() => localStorage.getItem("booking.session")),
     ).toBeNull();
@@ -340,7 +352,7 @@ test("401 on a booking API clears the restored session", async ({ page }) => {
     route.fulfill({ status: 401, json: { error: "Invalid token" } }),
   );
   await page.goto("/trips");
-  await expect(page.getByRole("button", { name: "Đăng nhập ↗" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Đăng nhập ↗" })).toBeVisible();
   expect(
     await page.evaluate(() => localStorage.getItem("booking.session")),
   ).toBeNull();
@@ -367,9 +379,7 @@ test("logout synchronizes across tabs", async ({ page, context }) => {
     other.locator("dd").filter({ hasText: user.email }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Đăng xuất", exact: true }).click();
-  await expect(
-    other.getByRole("button", { name: "Đăng nhập ↗" }),
-  ).toBeVisible();
+  await expect(other.getByRole("link", { name: "Đăng nhập ↗" })).toBeVisible();
   expect(
     await other.evaluate(() => localStorage.getItem("booking.session")),
   ).toBeNull();
@@ -488,7 +498,7 @@ test("management creates updates and deletes using authenticated API", async ({
   );
   await page.goto("/");
   await login(page);
-  await page.getByRole("button", { name: "Quản lý", exact: true }).click();
+  await page.getByRole("link", { name: "Quản lý", exact: true }).click();
   await page
     .getByRole("button", { name: "+ Thêm khách sạn", exact: true })
     .click();
@@ -556,7 +566,7 @@ test("hotel pagination requests the next API page", async ({ page }) => {
   await page.getByRole("button", { name: "Trang sau →", exact: true }).click();
   await expect(page.locator(".stay-card")).toHaveCount(1);
   await expect(
-    page.getByRole("button", { name: "The Coast House ↗" }),
+    page.getByRole("link", { name: "The Coast House ↗" }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Trang sau →", exact: true }),
@@ -578,14 +588,51 @@ test("deleted saved hotels are skipped and detail 404 is visible", async ({
       route.fulfill({ status: 404, json: { error: "Hotel not found" } }),
   );
   await page.goto("/");
-  await page.getByRole("button", { name: "An Nhiên Retreat ↗" }).click();
-  await expect(page.getByRole("dialog").getByRole("alert")).toContainText(
-    "không còn tồn tại",
-  );
-  await page.keyboard.press("Escape");
-  await page.getByRole("button", { name: /Đã lưu/ }).click();
+  await page.getByRole("link", { name: "An Nhiên Retreat ↗" }).click();
+  await expect(
+    page.locator(".hotel-detail-page").getByRole("alert"),
+  ).toContainText("không còn tồn tại");
+  await page.goBack();
+  await page.getByRole("link", { name: /Đã lưu/ }).click();
   await expect(
     page.getByRole("heading", { name: "Chưa có nơi nào được lưu" }),
   ).toBeVisible();
   await expect(page.locator(".stay-card")).toHaveCount(0);
+});
+
+test("login returns to the requested protected page", async ({ page }) => {
+  await page.route("**/api/v1/auth/login", (route) =>
+    route.fulfill({ json: { access_token: "test-token", expires_in: 3600 } }),
+  );
+  await page.route("**/api/v1/auth/me", (route) =>
+    route.fulfill({ json: user }),
+  );
+  await page.goto("/manage");
+  await page.getByRole("button", { name: "Đăng nhập →", exact: true }).click();
+  await expect(page).toHaveURL(/\/login\?next=/);
+  await page.getByLabel("Email", { exact: true }).fill(user.email);
+  await page.getByLabel("Mật khẩu", { exact: true }).fill("test-password");
+  await page
+    .locator(".auth-card")
+    .getByRole("button", { name: "Đăng nhập →", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/manage$/);
+  await expect(page.locator(".management-list article")).toHaveCount(3);
+});
+
+test("login never redirects to an external return URL", async ({ page }) => {
+  await page.route("**/api/v1/auth/login", (route) =>
+    route.fulfill({ json: { access_token: "test-token", expires_in: 3600 } }),
+  );
+  await page.route("**/api/v1/auth/me", (route) =>
+    route.fulfill({ json: user }),
+  );
+  await page.goto("/login?next=https%3A%2F%2Fexample.com%2F");
+  await page.getByLabel("Email", { exact: true }).fill(user.email);
+  await page.getByLabel("Mật khẩu", { exact: true }).fill("test-password");
+  await page
+    .locator(".auth-card")
+    .getByRole("button", { name: "Đăng nhập →", exact: true })
+    .click();
+  await expect(page).toHaveURL("http://127.0.0.1:5173/");
 });

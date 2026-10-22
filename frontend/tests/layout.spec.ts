@@ -121,6 +121,8 @@ test("all routes and management workspace fit narrow and wide screens", async ({
       "/profile",
       "/manage",
       "/admin",
+      "/login",
+      "/register",
     ]) {
       await page.goto(route);
       await expect(page.locator(".app-shell")).toBeVisible();
@@ -185,18 +187,18 @@ test("all routes and management workspace fit narrow and wide screens", async ({
       });
       if (route === "/") {
         await page
-          .getByRole("button", { name: `${hotel.name} ↗`, exact: true })
+          .getByRole("link", { name: `${hotel.name} ↗`, exact: true })
           .click();
-        await expect(page.getByRole("dialog")).toContainText(
+        await expect(page.locator(".hotel-detail-page")).toContainText(
           "Kiểm tra phòng trống",
         );
         await expect
           .poll(() =>
-            page.getByRole("dialog").evaluate((dialog) => {
-              const booking = dialog
+            page.locator(".hotel-detail-page").evaluate((detailPage) => {
+              const booking = detailPage
                 .querySelector(".booking-panel")!
                 .getBoundingClientRect();
-              const save = dialog
+              const save = detailPage
                 .querySelector(".detail-save-actions button")!
                 .getBoundingClientRect();
               return save.top - booking.bottom;
@@ -219,23 +221,23 @@ test("all routes and management workspace fit narrow and wide screens", async ({
         await expect
           .poll(() =>
             page
-              .getByRole("dialog")
+              .locator(".hotel-detail-page")
               .evaluate((el) => el.scrollWidth - el.clientWidth),
           )
           .toBeLessThanOrEqual(1);
         await page.screenshot({
-          path: testInfo.outputPath(`${width}-booking-dialog.png`),
+          path: testInfo.outputPath(`${width}-hotel-detail.png`),
           fullPage: true,
         });
         await photo.scrollIntoViewIfNeeded();
         await page.screenshot({
           path: testInfo.outputPath(`${width}-room-options.png`),
         });
-        await page.keyboard.press("Escape");
+        await page.goBack();
       }
       if (route === "/trips") {
         await page
-          .getByRole("button", {
+          .getByRole("link", {
             name: `Chi tiết đơn ${booking.id.slice(0, 8)}`,
           })
           .click();
@@ -249,7 +251,7 @@ test("all routes and management workspace fit narrow and wide screens", async ({
       }
       if (route === "/manage") {
         await page
-          .getByRole("button", { name: `Phòng và nhân sự ${hotel.name}` })
+          .getByRole("link", { name: `Phòng và nhân sự ${hotel.name}` })
           .click();
         await page
           .getByRole("button", { name: room.name, exact: true })
@@ -274,7 +276,7 @@ test("all routes and management workspace fit narrow and wide screens", async ({
           path: testInfo.outputPath(`${width}-workspace.png`),
           fullPage: true,
         });
-        await page.getByRole("button", { name: "Đóng quản lý phòng" }).click();
+        await page.getByRole("link", { name: "Đóng quản lý phòng" }).click();
         await page
           .getByRole("button", { name: `Sửa ${hotel.name}`, exact: true })
           .click();
