@@ -16,6 +16,13 @@ type Options struct {
 	OwnerEmail   string
 	Hotels, Days int
 	From         string
+	Progress     func(string)
+}
+
+func progress(in Options, message string) {
+	if in.Progress != nil {
+		in.Progress(message)
+	}
 }
 
 type Result struct{ Hotels, Rooms, Nights, Skipped int }
@@ -35,9 +42,11 @@ func Seed(ctx context.Context, conn *gorm.DB, in Options) (Result, error) {
 	}
 	err = conn.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Serialize repeated seed commands; reruns never update existing inventory.
+		progress(in, "Waiting for sample-data import lock...")
 		if err := tx.Exec("SELECT pg_advisory_xact_lock(hashtext('booking-demo-seed-v1'))").Error; err != nil {
 			return err
 		}
+		progress(in, "Import lock acquired; preparing hotels and room inventory...")
 		var owner identity.User
 		if err := tx.Where("email = ?", strings.TrimSpace(in.OwnerEmail)).First(&owner).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -55,6 +64,7 @@ func Seed(ctx context.Context, conn *gorm.DB, in Options) (Result, error) {
 			}
 			if count > 0 {
 				out.Skipped++
+				progress(in, fmt.Sprintf("[%d/%d] Skipped existing %s", i+1, in.Hotels, slug))
 				continue
 			}
 			place := destinations[i%len(destinations)]
@@ -84,6 +94,7 @@ func Seed(ctx context.Context, conn *gorm.DB, in Options) (Result, error) {
 				out.Nights += in.Days
 			}
 			out.Hotels++
+			progress(in, fmt.Sprintf("[%d/%d] Prepared %s and 3 room types (pending commit)", i+1, in.Hotels, slug))
 		}
 		return nil
 	})

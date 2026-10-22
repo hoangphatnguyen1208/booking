@@ -26,11 +26,13 @@ func main() {
 		log.Fatal(err)
 	}
 	conn := db.Connect(config.NewEnv())
+	log.Print("Applying database migrations...")
 	if err := db.Migrate(conn); err != nil {
 		log.Fatal(err)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
+	in.Progress = func(message string) { log.Print(message) }
 	out, err := bootstrap.Seed(ctx, conn, in)
 	if err != nil {
 		log.Fatal(err)
