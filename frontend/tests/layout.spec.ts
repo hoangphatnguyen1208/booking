@@ -141,6 +141,24 @@ test("all routes and management workspace fit narrow and wide screens", async ({
               .evaluate((el) => (el as HTMLImageElement).naturalWidth),
           )
           .toBeGreaterThan(0);
+      if (route === "/" || route === "/saved") {
+        const save = page.locator(".save-button").first();
+        await save.scrollIntoViewIfNeeded();
+        await expect
+          .poll(() =>
+            save.evaluate((button) => {
+              const rect = button.getBoundingClientRect();
+              return button.contains(
+                document.elementFromPoint(
+                  rect.x + rect.width / 2,
+                  rect.y + rect.height / 2,
+                ),
+              );
+            }),
+          )
+          .toBe(true);
+        await page.evaluate(() => window.scrollTo(0, 0));
+      }
       if (route === "/trips")
         await expect(page.locator(".management-list article")).toHaveCount(1);
       if (route === "/admin") {

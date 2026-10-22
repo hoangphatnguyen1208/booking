@@ -1688,3 +1688,6 @@ dialog.hotel-detail-dialog {
   height: 100%;
   object-fit: cover;
 }
+.stay-art {
+  isolation: isolate;
+}
