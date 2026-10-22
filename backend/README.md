@@ -18,6 +18,20 @@ API mặc định ở `127.0.0.1:8080`. Compose tự cấu hình `DB_STR` đến
 
 ## Thêm dữ liệu mẫu hàng loạt
 
+### Một script tạo admin và import dữ liệu
+
+Sau khi CI publish image mới, tải script vào thư mục Compose trên VPS và chạy:
+
+```sh
+cd ~/booking
+curl -fsSL https://raw.githubusercontent.com/hoangphatnguyen1208/booking/master/backend/scripts/bootstrap.sh -o bootstrap.sh
+bash bootstrap.sh hoangphatnguyen1208@gmail.com 20 90
+```
+
+Script pull image, chờ backend sẵn sàng, tạo tài khoản nếu chưa có (nhập mật khẩu khi được hỏi, không hiện trên terminal), cấp admin rồi import khách sạn/phòng/tồn. Tài khoản đã tồn tại sẽ giữ nguyên mật khẩu và được cấp admin; chạy lại không tạo trùng dữ liệu mẫu. Script dùng Compose và `.env` có sẵn trong thư mục đang đứng; không cần clone source trên VPS. Nếu seed lỗi, lượt seed rollback nhưng quyền admin đã cấp vẫn giữ nguyên; sửa lỗi và chạy lại script. Đăng nhập lại sau khi hoàn tất để tải quyền admin mới.
+
+### Chỉ import dữ liệu cho tài khoản đã có
+
 Tài khoản owner phải đăng ký trước. Lệnh dưới tạo 20 khách sạn mẫu ở 10 thành phố Việt Nam, 3 loại phòng/khách sạn (10 Standard, 6 Deluxe, 4 Family), giá VND và tồn phòng trong 90 ngày tính từ hôm nay theo giờ Việt Nam:
 
 ```sh
