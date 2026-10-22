@@ -13,10 +13,11 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestLegacyMigrationPreservesHotelAndDoesNotAssignOwner(t *testing.T) {
-	for _, variant := range []string{"with_slug", "missing_slug", "minimal_hotel", "missing_country"} {
+	for _, variant := range []string{"with_slug", "missing_slug", "minimal_hotel", "missing_country", "text_timestamps"} {
 		t.Run(variant, func(t *testing.T) {
 			testLegacyMigration(t, variant)
 		})
@@ -66,6 +67,10 @@ func testLegacyMigration(t *testing.T, variant string) {
 	if variant == "minimal_hotel" {
 		setup = "CREATE TABLE hotels (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name varchar(100) NOT NULL); INSERT INTO hotels(name) VALUES ('Legacy hotel')"
 	}
+	if variant == "text_timestamps" {
+		setup = strings.ReplaceAll(setup, "timestamptz DEFAULT now()", "text")
+		setup += "; UPDATE hotels SET created_at = '2026-10-22T10:00:00+07:00', updated_at = ''"
+	}
 	if err = conn.Exec(setup).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -82,7 +87,7 @@ func testLegacyMigration(t *testing.T, variant string) {
 	if h.Name != "Legacy hotel" || h.Amenities == nil {
 		t.Fatalf("legacy data lost: %+v", h)
 	}
-	if (variant == "with_slug" || variant == "missing_country") && h.Slug != "legacy" {
+	if (variant == "with_slug" || variant == "missing_country" || variant == "text_timestamps") && h.Slug != "legacy" {
 		t.Fatalf("existing slug changed: %q", h.Slug)
 	}
 	if (variant == "missing_slug" || variant == "minimal_hotel") && h.Slug != "legacy-"+h.ID {
@@ -102,8 +107,11 @@ func testLegacyMigration(t *testing.T, variant string) {
 	if variant == "missing_country" && h.Country != "" {
 		t.Fatal("country should remain unknown")
 	}
-	if (variant == "with_slug" || variant == "missing_slug") && h.Country != "VN" {
+	if (variant == "with_slug" || variant == "missing_slug" || variant == "text_timestamps") && h.Country != "VN" {
 		t.Fatal("existing country changed")
+	}
+	if variant == "text_timestamps" && (!h.CreatedAt.Equal(time.Date(2026, 10, 22, 3, 0, 0, 0, time.UTC)) || !h.UpdatedAt.IsZero()) {
+		t.Fatalf("legacy timestamp values were not preserved: %+v", h)
 	}
 	// Reproduce the actual failing workflow, not just SELECT from the table.
 	owner := identity.User{Email: "legacy-owner@example.test", HashedPassword: "test-only"}
