@@ -1,5 +1,7 @@
 import type { AppProps } from "next/app";
 import Head from "next/head";
+import { BookingProvider } from "../BookingProvider";
+import BookingLayout from "../BookingLayout";
 import "../index.css";
 import "../App.css";
 
@@ -16,7 +18,11 @@ export default function BookingApplication({ Component, pageProps }: AppProps) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
       </Head>
-      <Component {...pageProps} />
+      <BookingProvider>
+        <BookingLayout>
+          <Component {...pageProps} />
+        </BookingLayout>
+      </BookingProvider>
     </>
   );
 }

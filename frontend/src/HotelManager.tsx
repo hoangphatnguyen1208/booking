@@ -3,7 +3,7 @@ import type { FormEvent } from "react";
 import { api, ApiError } from "./api";
 import type { Hotel, HotelInput } from "./api";
 import { bookingApi } from "./booking-api";
-import HotelWorkspace from "./HotelWorkspace";
+import Link from "next/link";
 
 const blank: HotelInput = {
   image_url: "",
@@ -18,18 +18,15 @@ const blank: HotelInput = {
 export default function HotelManager({
   token,
   onLogin,
-  onChanged,
   onUnauthorized,
 }: {
   token: string | null;
   onLogin: () => void;
-  onChanged: () => void;
   onUnauthorized: () => void;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [showForm, setShowForm] = useState(false);
   const [items, setItems] = useState<Hotel[]>([]);
-  const [workspace, setWorkspace] = useState<Hotel | null>(null);
   const [page, setPage] = useState(1);
   const [hasNext, setHasNext] = useState(false);
   const [refresh, setRefresh] = useState(0);
@@ -99,7 +96,6 @@ export default function HotelManager({
       setShowForm(false);
       setInput(blank);
       setRefresh((value) => value + 1);
-      onChanged();
     } catch (err) {
       failed(err);
     } finally {
@@ -120,7 +116,6 @@ export default function HotelManager({
       setRemoving(null);
       setMessage("Đã xóa khách sạn.");
       setRefresh((value) => value + 1);
-      onChanged();
     } catch (err) {
       failed(err);
     } finally {
@@ -136,27 +131,6 @@ export default function HotelManager({
           Đăng nhập →
         </button>
       </div>
-    );
-  if (workspace)
-    return (
-      <section className="management-page">
-        <button
-          className="outline"
-          aria-label="Đóng quản lý phòng"
-          onClick={() => setWorkspace(null)}
-        >
-          ← Quay lại danh sách
-        </button>
-        <header className="page-heading">
-          <div>
-            <h1>{workspace.name}</h1>
-            <p>
-              {workspace.city}, {workspace.country} · Quản lý vận hành
-            </p>
-          </div>
-        </header>
-        <HotelWorkspace key={workspace.id} token={token} id={workspace.id} />
-      </section>
     );
   return (
     <section className="management-page">
@@ -335,17 +309,13 @@ export default function HotelManager({
                   </div>
                 </div>
                 <div className="management-actions">
-                  <button
+                  <Link
                     className="outline"
+                    href={`/manage/hotels/${hotel.id}`}
                     aria-label={`Phòng và nhân sự ${hotel.name}`}
-                    disabled={busy}
-                    onClick={() => {
-                      setWorkspace(hotel);
-                      window.scrollTo(0, 0);
-                    }}
                   >
                     Phòng & nhân sự
-                  </button>
+                  </Link>
                   <button
                     className="outline"
                     disabled={busy}

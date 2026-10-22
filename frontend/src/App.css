@@ -1700,3 +1700,110 @@ dialog.hotel-detail-dialog {
   width: 100%;
   min-height: 44px;
 }
+/* Route pages reuse the existing visual design without modal-only layout rules. */
+a.outline,
+a.primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+a.nav-item,
+a.stay-title {
+  text-decoration: none;
+}
+.hotel-detail-page {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+.hotel-detail-page > .stay-art {
+  height: 360px;
+  margin: 24px 0;
+}
+.hotel-detail-page > .filters {
+  margin-bottom: 24px;
+}
+.hotel-detail-page .booking-panel {
+  background: white;
+  padding: 24px;
+  border: 1px solid #dce5dc;
+  border-radius: 12px;
+}
+.auth-page {
+  max-width: 520px;
+  margin: 0 auto;
+}
+.auth-card {
+  margin-top: 24px;
+}
+.auth-card h1 {
+  margin-top: 24px;
+  font-size: 28px;
+}
+.auth-card form {
+  display: grid;
+  gap: 18px;
+  margin: 24px 0;
+}
+.auth-card label {
+  font-size: 14px;
+}
+.auth-card input {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 12px;
+  border: 1px solid #d9e4d9;
+  border-radius: 7px;
+  background: #fafcf9;
+}
+.auth-card .text-button {
+  display: block;
+  text-align: center;
+}
+.management-actions a {
+  flex-shrink: 0;
+}
+@media (max-width: 760px) {
+  .hotel-detail-page > .stay-art {
+    height: 240px;
+  }
+  .hotel-detail-page .booking-panel {
+    padding: 16px;
+  }
+  .auth-card input {
+    font-size: 16px;
+  }
+  .management-actions a {
+    flex: 1 1 auto;
+    min-height: 44px;
+  }
+}
+.booking-panel form {
+  display: grid;
+  gap: 16px;
+  margin-top: 20px;
+}
+.booking-panel label {
+  display: block;
+  font-size: 14px;
+  color: #647d68;
+}
+.booking-panel input {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 12px;
+  border: 1px solid #d9e4d9;
+  border-radius: 7px;
+  background: #fafcf9;
+  color: #294438;
+}
+.booking-panel form > .primary {
+  width: 100%;
+}
+@media (max-width: 760px) {
+  .booking-panel input {
+    font-size: 16px;
+  }
+}
