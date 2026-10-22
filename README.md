@@ -32,6 +32,18 @@ Mở [http://localhost:8088](http://localhost:8088). Dùng mật khẩu DB dài 
 
 Bản Compose bind web vào localhost; để triển khai public, đặt TLS reverse proxy phía trước và cấu hình đúng TRUSTED_PROXIES. Mount PostgreSQL 18 dùng /var/lib/postgresql theo [hướng dẫn image chính thức](https://hub.docker.com/_/postgres).
 
+## VPS chỉ chạy backend
+
+Dùng [compose.backend.yaml](compose.backend.yaml), gồm backend từ Docker Hub và PostgreSQL với volume lưu dữ liệu, healthcheck và tự khởi động lại. Đặt nội dung file này thành `~/booking/compose.yaml` trên VPS, cùng `.env` theo [.env.example](.env.example), rồi chạy:
+
+```sh
+cd ~/booking
+docker compose pull
+docker compose up -d --wait
+```
+
+API mặc định tại `127.0.0.1:8080`; đặt HTTPS reverse proxy phía trước. Nếu cần mở cổng API ra ngoài, đổi `BACKEND_BIND=0.0.0.0`. PostgreSQL không publish cổng. Password DB nên dùng chuỗi chữ/số dài và giữ nguyên sau khi đã khởi tạo volume. CD hiện tại sẽ dùng chính Compose có sẵn trong thư mục `booking` này; VPS không cần source code. Nếu image private, đăng nhập Docker Hub trên VPS trước. Không xóa volume khi cập nhật.
+
 ## Chạy trực tiếp
 
 Backend cần Go tương thích go.mod và PostgreSQL:
