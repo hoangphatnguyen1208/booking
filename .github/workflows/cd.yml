@@ -10,95 +10,52 @@ concurrency:
   group: booking-cd-production
   cancel-in-progress: false
 jobs:
-  publish-images:
-    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'master' && github.event.workflow_run.head_repository.full_name == github.repository && vars.DEPLOY_ENABLED == 'true'
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        component: [backend, frontend]
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - uses: docker/build-push-action@v6
-        with:
-          context: ./${{ matrix.component }}
-          push: true
-          platforms: linux/amd64
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/booking-${{ matrix.component }}:${{ github.event.workflow_run.head_sha }}
-          cache-from: type=gha,scope=${{ matrix.component }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.component }}
-
   deploy:
-    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'master' && github.event.workflow_run.head_repository.full_name == github.repository && vars.DEPLOY_ENABLED == 'true'
-    needs: publish-images
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_repository.full_name == github.repository && vars.DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-latest
     environment: production
-    concurrency:
-      group: booking-production
-      cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
-      - name: Configure SSH and deploy
+      - name: Deploy via SSH (pull images)
+        uses: appleboy/ssh-action@v1.2.0
         env:
           RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
-          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
-          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
-          VPS_HOST: ${{ secrets.VPS_HOST }}
-          VPS_USER: ${{ secrets.VPS_USER }}
-          VPS_PORT: ${{ secrets.VPS_PORT }}
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-        run: |
-          set -euo pipefail
-          : "${SSH_KEY:?Missing VPS_SSH_KEY}" "${KNOWN_HOSTS:?Missing VPS_KNOWN_HOSTS}"
-          : "${VPS_HOST:?Missing VPS_HOST}" "${VPS_USER:?Missing VPS_USER}" "${DOCKERHUB_USERNAME:?Missing DOCKERHUB_USERNAME}"
-          [[ "$VPS_HOST" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]*$ ]]
-          [[ "$VPS_USER" =~ ^[a-z_][a-z0-9_-]*$ ]]
-          [[ "$DOCKERHUB_USERNAME" =~ ^[a-z0-9][a-z0-9_-]*$ ]]
-          port="${VPS_PORT:-22}"
-          [[ "$port" =~ ^[0-9]+$ ]]
-          install -m 700 -d ~/.ssh
-          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
-          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
-          chmod 600 ~/.ssh/id_deploy ~/.ssh/known_hosts
-          trap 'rm -f ~/.ssh/id_deploy' EXIT
-          opts=(-i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=15)
-          ssh "${opts[@]}" -p "$port" "$VPS_USER@$VPS_HOST" 'mkdir -p /opt/booking'
-          scp "${opts[@]}" -P "$port" compose.yaml "$VPS_USER@$VPS_HOST:/opt/booking/"
-          ssh "${opts[@]}" -p "$port" "$VPS_USER@$VPS_HOST" "bash -s -- '$DOCKERHUB_USERNAME/booking-backend:$RELEASE_SHA' '$DOCKERHUB_USERNAME/booking-frontend:$RELEASE_SHA'" <<'DEPLOY'
-          set -euo pipefail
-          cd /opt/booking
-          test -s .env || { echo 'Create /opt/booking/.env with POSTGRES_PASSWORD and JWT_SECRET first'; exit 1; }
-          export BACKEND_IMAGE="$1" FRONTEND_IMAGE="$2"
-          cat > compose.images.yaml <<'IMAGES'
-          services:
-            backend:
-              image: ${BACKEND_IMAGE:?}
-            frontend:
-              image: ${FRONTEND_IMAGE:?}
-          IMAGES
-          compose=(docker compose -p booking -f compose.yaml -f compose.images.yaml)
-          "${compose[@]}" config --quiet
-          "${compose[@]}" pull
-          "${compose[@]}" up -d --no-build --remove-orphans
-          for attempt in $(seq 1 60); do
-            if curl -fsS http://127.0.0.1:8088/readyz && curl -fsS -o /dev/null http://127.0.0.1:8088/; then
-              printf 'BACKEND_IMAGE=%s\nFRONTEND_IMAGE=%s\n' "$BACKEND_IMAGE" "$FRONTEND_IMAGE" > .release.env.tmp
-              mv .release.env.tmp .release.env
-              echo 'Deployment ready'
-              exit 0
-            fi
-            sleep 3
-          done
-          "${compose[@]}" ps
-          echo 'Deployment failed readiness; inspect container logs on the VPS'
-          exit 1
-          DEPLOY
-
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || '22' }}
+          fingerprint: ${{ secrets.VPS_FINGERPRINT }}
+          envs: RELEASE_SHA,DOCKER_USERNAME
+          command_timeout: 10m
+          script: |
+            set -eu
+            cd booking
+            test -s .env || { echo 'Configure .env with POSTGRES_PASSWORD and JWT_SECRET first'; exit 1; }
+            test -n "$DOCKER_USERNAME"
+            git fetch origin master
+            git checkout --detach "$RELEASE_SHA"
+            export BACKEND_IMAGE="$DOCKER_USERNAME/booking-backend:$RELEASE_SHA"
+            export FRONTEND_IMAGE="$DOCKER_USERNAME/booking-frontend:$RELEASE_SHA"
+            cat > compose.images.yaml <<'IMAGES'
+            services:
+              backend:
+                image: ${BACKEND_IMAGE:?}
+              frontend:
+                image: ${FRONTEND_IMAGE:?}
+            IMAGES
+            docker compose -p booking -f compose.yaml -f compose.images.yaml config --quiet
+            docker compose -p booking -f compose.yaml -f compose.images.yaml pull
+            docker compose -p booking -f compose.yaml -f compose.images.yaml up -d --no-build --remove-orphans
+            for attempt in $(seq 1 60); do
+              if curl -fsS http://127.0.0.1:8088/readyz && curl -fsS -o /dev/null http://127.0.0.1:8088/; then
+                printf 'BACKEND_IMAGE=%s\nFRONTEND_IMAGE=%s\n' "$BACKEND_IMAGE" "$FRONTEND_IMAGE" > .release.env.tmp
+                mv .release.env.tmp .release.env
+                docker image prune -f
+                exit 0
+              fi
+              sleep 3
+            done
+            docker compose -p booking -f compose.yaml -f compose.images.yaml ps
+            echo 'Deployment failed readiness; inspect container logs on the VPS'
+            exit 1
