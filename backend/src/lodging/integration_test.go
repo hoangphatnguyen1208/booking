@@ -85,6 +85,19 @@ func TestOwnershipAndInventory(t *testing.T) {
 	if err = conn.Model(&lodging.Inventory{}).Where("room_type_id = ?", room.ID).Update("reserved", 1).Error; err != nil {
 		t.Fatal(err)
 	}
+	input.Price = 600000
+	if err = s.PutInventory(ctx, owner.ID, room.ID, input); err != nil {
+		t.Fatal(err)
+	}
+	rows, err := s.Inventory(ctx, owner.ID, room.ID, input.From, input.To)
+	if err != nil || len(rows) != 2 {
+		t.Fatalf("batch update: %+v %v", rows, err)
+	}
+	for _, row := range rows {
+		if row.Reserved != 1 || row.Price != 600000 || row.Capacity != 1 {
+			t.Fatalf("batch upsert changed reservations: %+v", row)
+		}
+	}
 	input.Capacity = 0
 	if err = s.PutInventory(ctx, owner.ID, room.ID, input); err == nil {
 		t.Fatal("reduced inventory below reservations")

@@ -166,13 +166,11 @@ func (s *Service) PutInventory(ctx context.Context, actor, id string, in Invento
 		if count > 0 {
 			return fail(409, "Capacity cannot be lower than reserved rooms")
 		}
+		rows := make([]Inventory, 0, len(days))
 		for _, day := range days {
-			row := Inventory{RoomTypeID: id, Date: day, Capacity: in.Capacity, Price: in.Price}
-			if err := tx.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "room_type_id"}, {Name: "date"}}, DoUpdates: clause.AssignmentColumns([]string{"capacity", "price"})}).Create(&row).Error; err != nil {
-				return err
-			}
+			rows = append(rows, Inventory{RoomTypeID: id, Date: day, Capacity: in.Capacity, Price: in.Price})
 		}
-		return nil
+		return tx.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "room_type_id"}, {Name: "date"}}, DoUpdates: clause.AssignmentColumns([]string{"capacity", "price"})}).Create(&rows).Error
 	})
 }
 
