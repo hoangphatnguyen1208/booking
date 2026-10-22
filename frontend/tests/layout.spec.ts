@@ -33,6 +33,9 @@ const booking = {
   hotel_id: hotel.id,
   hotel_name: hotel.name,
   room_name: room.name,
+  room_type_id: room.id,
+  room_image_url: room.image_url,
+  payment_status: "unpaid",
   check_in: "2026-11-01",
   check_out: "2026-11-03",
   rooms: 2,
@@ -244,6 +247,31 @@ test("all routes and management workspace fit narrow and wide screens", async ({
         await expect(
           page.getByRole("heading", { name: "Chi tiết đơn", exact: true }),
         ).toBeVisible();
+        const bookedRoomPhoto = page.getByRole("img", {
+          name: `Phòng ${room.name}`,
+          exact: true,
+        });
+        await expect(bookedRoomPhoto).toBeVisible();
+        await expect
+          .poll(() =>
+            bookedRoomPhoto.evaluate(
+              (el) => (el as HTMLImageElement).naturalWidth,
+            ),
+          )
+          .toBeGreaterThan(0);
+        await expect(
+          page.getByRole("heading", {
+            name: "Thông tin thanh toán",
+            exact: true,
+          }),
+        ).toBeVisible();
+        await expect
+          .poll(() =>
+            page.evaluate(
+              () => document.documentElement.scrollWidth - innerWidth,
+            ),
+          )
+          .toBeLessThanOrEqual(1);
         await page.screenshot({
           path: testInfo.outputPath(`${width}-booking-detail.png`),
           fullPage: true,

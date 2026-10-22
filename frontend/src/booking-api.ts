@@ -24,6 +24,7 @@ export type Availability = {
   nights: Inventory[];
 };
 export type Booking = {
+  room_image_url?: string;
   id: string;
   hotel_id: string;
   room_type_id: string;
