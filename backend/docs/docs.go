@@ -2027,6 +2027,9 @@ const docTemplate = `{
                 "phone": {
                     "type": "string"
                 },
+                "room_image_url": {
+                    "type": "string"
+                },
                 "room_name": {
                     "type": "string"
                 },

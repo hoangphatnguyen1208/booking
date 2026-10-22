@@ -151,6 +151,10 @@ func (s *Service) Booking(ctx context.Context, actor, id string) (*Booking, erro
 			return nil, err
 		}
 	}
+	// Booking access is checked above. Include photos for inactive room types too.
+	if err := s.DB.WithContext(ctx).Model(&RoomType{}).Select("image_url").Where("id = ?", row.RoomTypeID).Scan(&row.RoomImageURL).Error; err != nil {
+		return nil, err
+	}
 	return &row, nil
 }
 
@@ -207,6 +211,7 @@ func (s *Service) Cancel(ctx context.Context, actor, id string) (*Booking, error
 		}
 		return nil
 	})
+	result.RoomImageURL = original.RoomImageURL
 	return &result, err
 }
 

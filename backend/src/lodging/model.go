@@ -24,6 +24,7 @@ type Inventory struct {
 	Price      int64     `json:"price" gorm:"not null;check:price >= 0 AND price <= 1000000000000"`
 }
 type Booking struct {
+	RoomImageURL   string         `json:"room_image_url,omitempty" gorm:"-"`
 	ID             string         `json:"id" gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 	UserID         string         `json:"user_id" gorm:"type:uuid;not null;uniqueIndex:booking_request"`
 	HotelID        string         `json:"hotel_id" gorm:"type:uuid;not null;index"`
