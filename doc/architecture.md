@@ -3,7 +3,7 @@
 ## Kiến trúc mục tiêu
 
 ```text
-Frontend React
+Frontend Next.js/React
     → API Gin /api/v1
         → Middleware: xác thực, quyền, request ID
         → Controller: bind DTO, HTTP response

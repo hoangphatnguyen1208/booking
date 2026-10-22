@@ -17,7 +17,7 @@ Thư mục này là bản kế hoạch cho toàn bộ hệ thống đặt phòng
 
 Xây dựng hệ thống cho khách tìm khách sạn, kiểm tra phòng theo ngày và số khách, đặt phòng, xem và hủy đơn; chủ khách sạn quản lý cơ sở của mình; quản trị viên quản lý toàn hệ thống.
 
-Tiếp tục dùng Go/Gin/GORM/PostgreSQL cho backend và React/TypeScript/Vite cho frontend. Triển khai theo kiến trúc monolith chia module để hoàn thành nghiệp vụ trước khi cân nhắc tách dịch vụ.
+Tiếp tục dùng Go/Gin/GORM/PostgreSQL cho backend và Next.js/React/TypeScript cho frontend. Triển khai theo kiến trúc monolith chia module để hoàn thành nghiệp vụ trước khi cân nhắc tách dịch vụ.
 
 MVP tập trung vào đặt phòng có tồn kho chính xác và thanh toán tại khách sạn. Thanh toán trực tuyến, đánh giá, khuyến mãi và thông báo tự động là các giai đoạn tiếp theo.
 

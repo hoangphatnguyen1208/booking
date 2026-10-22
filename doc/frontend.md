@@ -2,7 +2,7 @@
 
 ## Mục tiêu và cấu trúc
 
-Dùng React + TypeScript + Vite, giao diện tiếng Việt responsive. Chia code thành API client, kiểu dữ liệu, components dùng chung và features: auth, hotels, rooms, bookings, management, admin.
+Dùng Next.js + React + TypeScript, giao diện tiếng Việt responsive. Chia code thành API client, kiểu dữ liệu, components dùng chung và features: auth, hotels, rooms, bookings, management, admin. Tiếp tục tách giao diện theo route và cân nhắc SSR cho danh mục công khai; token và dữ liệu riêng tư cần giữ đúng ranh giới server/client.
 
 Tách component màn hình và nghiệp vụ khỏi App khi module mở rộng. Có điều hướng URL để tải lại, chia sẻ và dùng nút back/forward; route guard chỉ hỗ trợ UX, backend vẫn kiểm tra quyền.
 

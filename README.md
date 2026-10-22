@@ -1,6 +1,6 @@
 # Booking — hotel booking MVP
 
-Ứng dụng đặt phòng gồm Go/Gin/PostgreSQL và React/TypeScript/Vite. Kế hoạch phát triển dài hạn nằm trong [doc](doc/README.md); hướng dẫn này mô tả cách chạy và vận hành bản MVP.
+Ứng dụng đặt phòng gồm Go/Gin/PostgreSQL và Next.js/React/TypeScript. Kế hoạch phát triển dài hạn nằm trong [doc](doc/README.md); hướng dẫn này mô tả cách chạy và vận hành bản MVP.
 
 ## Chức năng
 
@@ -51,7 +51,7 @@ npm ci
 npm run dev
 ```
 
-Vite mặc định proxy /api/v1 đến localhost:8080. SERVER_ADDR có thể đổi bằng biến môi trường; nếu đổi port backend thì cập nhật Vite proxy. Docker production dùng Nginx cùng origin nên không cần CORS.
+Frontend mở tại http://127.0.0.1:5173. Next.js rewrite /api/v1 đến http://127.0.0.1:8080; đổi BACKEND_ORIGIN trong frontend/.env.local nếu backend dùng địa chỉ khác. Production đọc target rewrite lúc build. Docker chạy Next.js standalone tại cổng 3000 trong container, chuyển tiếp API đến backend:8080 cùng origin nên không cần CORS. Xem [frontend README](frontend/README.md) để biết routing và cấu hình.
 
 Swagger ở [http://localhost:8080/swagger/index.html](http://localhost:8080/swagger/index.html). Health: /healthz; readiness kiểm tra DB: /readyz.
 
