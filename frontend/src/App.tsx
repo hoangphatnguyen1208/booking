@@ -9,7 +9,6 @@ import Trips from "./Trips";
 import AdminPanel from "./AdminPanel";
 import { bookingApi } from "./booking-api";
 import type { Stay } from "./catalog";
-import "./App.css";
 
 type Page = "explore" | "saved" | "trips" | "profile" | "manage" | "admin";
 const navigation = [

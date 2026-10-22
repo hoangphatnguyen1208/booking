@@ -43,7 +43,7 @@ export class ApiError extends Error {
     this.name = "ApiError";
   }
 }
-const base = (import.meta.env.VITE_API_BASE_URL || "/api/v1").replace(
+const base = (process.env.NEXT_PUBLIC_API_BASE_URL || "/api/v1").replace(
   /\/$/,
   "",
 );

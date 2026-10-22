@@ -27,6 +27,8 @@ node_modules/
 /frontend/dist/
 /frontend/build/
 /frontend/.next/
+/frontend/next-env.d.ts
+/frontend/*.tsbuildinfo
 /frontend/test-results/
 /frontend/playwright-report/
 

@@ -4,7 +4,7 @@ export default defineConfig({
   fullyParallel: true,
   use: { baseURL: "http://127.0.0.1:5173", trace: "retain-on-failure" },
   webServer: {
-    command: "npm run dev -- --host 127.0.0.1",
+    command: process.env.PLAYWRIGHT_PRODUCTION ? "npm run start" : "npm run dev",
     url: "http://127.0.0.1:5173",
     reuseExistingServer: !process.env.CI,
   },
