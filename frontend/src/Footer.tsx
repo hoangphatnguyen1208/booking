@@ -37,7 +37,7 @@ export default function Footer() {
           <Link href="/profile">Tài khoản của bạn</Link>
           {canManage && <Link href="/manage">Quản lý khách sạn</Link>}
           <a href="https://unsplash.com" target="_blank" rel="noreferrer">
-            Ảnh từ Unsplash ↗
+            Ảnh từ Unsplash
           </a>
         </nav>
         <div className="footer-note">

@@ -49,7 +49,7 @@ export default function HotelPage({
         <title>{hotel?.name || "Chi tiết khách sạn"} · booking.</title>
       </Head>
       <Link className="outline" href="/">
-        ← Quay lại danh sách
+        Quay lại danh sách
       </Link>
       {loading ? (
         <>

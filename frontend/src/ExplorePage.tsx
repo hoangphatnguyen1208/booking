@@ -158,7 +158,7 @@ export default function ExplorePage({
           </select>
         </label>
         <button className="primary" type="submit">
-          Tìm nơi ở <span>→</span>
+          Tìm nơi ở
         </button>
       </form>
       {searchError && (
@@ -214,7 +214,7 @@ export default function ExplorePage({
           disabled={hotelPage === 1 || loading}
           onClick={() => navigate({ ...query, page: String(hotelPage - 1) })}
         >
-          ← Trang trước
+          Trang trước
         </button>
         <span>Trang {hotelPage}</span>
         <button
@@ -224,7 +224,7 @@ export default function ExplorePage({
           }
           onClick={() => navigate({ ...query, page: String(hotelPage + 1) })}
         >
-          Trang sau →
+          Trang sau
         </button>
       </div>
       <div className="collection-note">

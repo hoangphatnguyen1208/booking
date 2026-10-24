@@ -72,7 +72,7 @@ export default function AuthenticationPage({
         <title>{mode === "login" ? "Đăng nhập" : "Đăng ký"} · booking.</title>
       </Head>
       <Link className="outline" href={next}>
-        ← Quay lại
+        Quay lại
       </Link>
       <div className="auth-card profile-card">
         <span className="brand-icon">b.</span>
@@ -127,8 +127,8 @@ export default function AuthenticationPage({
             {busy
               ? "Đang xử lý…"
               : mode === "login"
-                ? "Đăng nhập →"
-                : "Tạo tài khoản →"}
+                ? "Đăng nhập"
+                : "Tạo tài khoản"}
           </button>
         </form>
         <Link

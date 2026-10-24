@@ -66,7 +66,7 @@ export default function SavedPage() {
           <h2>Đăng nhập để xem những nơi đã lưu</h2>
           <p>Danh sách yêu thích được lưu riêng cho từng tài khoản.</p>
           <Link className="primary" href="/login?next=%2Fsaved">
-            Đăng nhập →
+            Đăng nhập
           </Link>
         </div>
       ) : savedError ? (

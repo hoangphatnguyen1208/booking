@@ -276,7 +276,7 @@ export default function BookingPanel({
           </div>
           <form onSubmit={book}>
             <p className="booking-dialog-dates">
-              {from} → {to} · {rooms} phòng · {guests} khách
+              {from} – {to} · {rooms} phòng · {guests} khách
             </p>
             <p>
               Tổng: {money(selected.total)}. Thanh toán tại khách sạn. Hủy miễn

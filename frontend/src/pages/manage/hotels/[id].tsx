@@ -35,7 +35,7 @@ export default function ManagedHotel() {
         <title>{hotel?.name || "Quản lý phòng"} · booking.</title>
       </Head>
       <Link className="outline" href="/manage" aria-label="Đóng quản lý phòng">
-        ← Quay lại danh sách
+        Quay lại danh sách
       </Link>
       <header className="page-heading">
         <div>
@@ -54,7 +54,7 @@ export default function ManagedHotel() {
           className="primary"
           href={{ pathname: "/login", query: { next: router.asPath } }}
         >
-          Đăng nhập →
+          Đăng nhập
         </Link>
       ) : error ? (
         <p role="alert" className="error">

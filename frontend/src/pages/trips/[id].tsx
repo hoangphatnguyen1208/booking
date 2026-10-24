@@ -74,7 +74,7 @@ export default function TripDetail() {
         <title>Chi tiết đơn · booking.</title>
       </Head>
       <Link className="trip-back" href="/trips">
-        ← Quay lại chuyến đi
+        Quay lại chuyến đi
       </Link>
       <header className="page-heading trip-heading">
         <div>
@@ -93,7 +93,7 @@ export default function TripDetail() {
           className="primary"
           href={{ pathname: "/login", query: { next: router.asPath } }}
         >
-          Đăng nhập →
+          Đăng nhập
         </Link>
       )}
       {ready && token && (

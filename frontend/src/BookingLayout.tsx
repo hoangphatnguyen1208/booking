@@ -101,7 +101,7 @@ export default function BookingLayout({ children }: { children: ReactNode }) {
                   query: { next: safeReturnPath(router.asPath) },
                 }}
               >
-                Đăng nhập <span>↗</span>
+                Đăng nhập
               </Link>
             )}
           </div>

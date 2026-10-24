@@ -23,7 +23,7 @@ export default function ProfilePage() {
           <h2>Mỗi hành trình bắt đầu từ bạn</h2>
           <p>Đăng nhập để xem thông tin tài khoản của bạn.</p>
           <button className="primary" onClick={() => openAuth()}>
-            Đăng nhập →
+            Đăng nhập
           </button>
           <button className="text-button" onClick={() => openAuth("register")}>
             Tạo tài khoản mới

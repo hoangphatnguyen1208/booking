@@ -39,7 +39,7 @@ export default function Trips({
         <h1>Chuyến đi của tôi</h1>
         <p>Đăng nhập để xem và quản lý đơn đặt phòng.</p>
         <button className="primary" onClick={onLogin}>
-          Đăng nhập →
+          Đăng nhập
         </button>
       </div>
     );

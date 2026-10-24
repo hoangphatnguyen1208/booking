@@ -24,7 +24,7 @@ export default function ManagementGate({
           className="primary"
           href={{ pathname: "/login", query: { next: router.asPath } }}
         >
-          Đăng nhập →
+          Đăng nhập
         </Link>
       </div>
     );
@@ -50,7 +50,7 @@ export default function ManagementGate({
           phá và đặt phòng.
         </p>
         <Link className="primary" href="/">
-          Khám phá nơi ở →
+          Khám phá nơi ở
         </Link>
       </div>
     );

@@ -132,7 +132,7 @@ export default function HotelManager({
         <h1>Quản lý khách sạn</h1>
         <p>Đăng nhập để tạo, sửa và xóa khách sạn.</p>
         <button className="primary" onClick={onLogin}>
-          Đăng nhập →
+          Đăng nhập
         </button>
       </div>
     );
@@ -380,7 +380,7 @@ export default function HotelManager({
               disabled={page === 1 || busy}
               onClick={() => setPage((value) => value - 1)}
             >
-              ← Trang trước
+              Trang trước
             </button>
             <span>Trang {page}</span>
             <button
@@ -388,7 +388,7 @@ export default function HotelManager({
               disabled={!hasNext || busy}
               onClick={() => setPage((value) => value + 1)}
             >
-              Trang sau →
+              Trang sau
             </button>
             <button
               className="outline"

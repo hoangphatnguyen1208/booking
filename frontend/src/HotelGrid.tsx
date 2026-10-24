@@ -34,7 +34,7 @@ export default function HotelGrid({
               <span className="rating">★ {stay.rating}</span>
             </div>
             <Link className="stay-title" href={`/hotels/${stay.id}`}>
-              {stay.name} <span>↗</span>
+              {stay.name}
             </Link>
             <p>{stay.description}</p>
             <div className="stay-price">
