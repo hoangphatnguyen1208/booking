@@ -3,7 +3,16 @@ export default defineConfig({
   testDir: "./tests",
   testIgnore: "**/ssr.spec.ts",
   fullyParallel: true,
-  use: { baseURL: "http://127.0.0.1:5173", trace: "retain-on-failure" },
+  use: {
+    baseURL: "http://127.0.0.1:5173",
+    trace: "retain-on-failure",
+    launchOptions: {
+      executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
+      args: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
+        ? ["--no-sandbox", "--disable-dev-shm-usage"]
+        : [],
+    },
+  },
   webServer: {
     command: process.env.PLAYWRIGHT_PRODUCTION
       ? "npm run start"

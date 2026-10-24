@@ -68,7 +68,8 @@ test("all routes and management workspace fit narrow and wide screens", async ({
   await page.route("**/api/v1/**", (route) => {
     const path = new URL(route.request().url()).pathname.replace("/api/v1", "");
     let json: unknown = [];
-    if (path === "/me/saved-hotels") json = [hotel.id];
+    if (path === "/me/access") json = { admin: true, hotels: [] };
+    else if (path === "/me/saved-hotels") json = [hotel.id];
     else if (path === "/auth/me") json = user;
     else if (path === "/hotels" || path === "/me/hotels")
       json = {
@@ -111,7 +112,9 @@ test("all routes and management workspace fit narrow and wide screens", async ({
     return route.fulfill({ json });
   });
   const widths =
-    testInfo.project.name === "mobile" ? [390, 320] : [1440, 1024, 768];
+    testInfo.project.name === "mobile"
+      ? [390, 320, 360, 430]
+      : [1440, 1024, 768];
   for (const width of widths) {
     await page.setViewportSize({ width, height: 950 });
     for (const route of [
