@@ -1,5 +1,5 @@
 import RoomPhoto from "./RoomPhoto";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import type { FormEvent } from "react";
 import { bookingApi, money } from "./booking-api";
 import type { Availability, Booking, BookingInput } from "./booking-api";
@@ -26,6 +26,23 @@ export default function BookingPanel({
     [booking, setBooking] = useState<Booking | null>(null);
   const keyRef = useRef({ payload: "", key: "" });
   const submitLock = useRef(false);
+  const selectionTrigger = useRef<HTMLButtonElement | null>(null);
+  const guestNameRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!selected || booking || !dialog) return;
+    const previousOverflow = document.body.style.overflow;
+    dialog.showModal();
+    guestNameRef.current?.focus({ preventScroll: true });
+    document.body.style.overflow = "hidden";
+    return () => {
+      dialog.close();
+      document.body.style.overflow = previousOverflow;
+      selectionTrigger.current?.focus({ preventScroll: true });
+    };
+  }, [selected, booking]);
+
   const [name, setName] = useState(""),
     [phone, setPhone] = useState("");
   function changed() {
@@ -184,12 +201,12 @@ export default function BookingPanel({
           <button className="primary">Kiểm tra phòng trống</button>
         </fieldset>
       </form>
-      {error && (
+      {error && !selected && (
         <p className="error" role="alert">
           {error}
         </p>
       )}
-      {busy && <p role="status">Đang xử lý…</p>}
+      {busy && !selected && <p role="status">Đang xử lý…</p>}
       {available?.length === 0 && (
         <p>Không còn phòng phù hợp cho khoảng ngày này.</p>
       )}
@@ -210,48 +227,102 @@ export default function BookingPanel({
           <button
             className="outline"
             disabled={busy}
-            onClick={() => setSelected(item)}
+            onClick={(event) => {
+              selectionTrigger.current = event.currentTarget;
+              setSelected(item);
+            }}
           >
             Chọn {item.room.name}
           </button>
         </div>
       ))}
       {selected && (
-        <form onSubmit={book}>
-          <h4>Xác nhận đặt {selected.room.name}</h4>
-          <p>
-            Tổng: {money(selected.total)}. Thanh toán tại khách sạn. Hủy miễn
-            phí trước 00:00 ngày nhận phòng (giờ Việt Nam).
-          </p>
-          <label>
-            Tên khách
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              maxLength={100}
-            />
-          </label>
-          <label>
-            Số điện thoại
-            <input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              required
-              maxLength={30}
-            />
-          </label>
-          {token ? (
-            <button className="primary" disabled={busy}>
-              Xác nhận đặt phòng
+        <dialog
+          ref={dialogRef}
+          className="booking-dialog"
+          aria-labelledby="booking-dialog-title"
+          onCancel={(event) => {
+            event.preventDefault();
+            if (!busy) setSelected(null);
+          }}
+          onClick={(event) => {
+            if (event.target !== event.currentTarget || busy) return;
+            const rect = event.currentTarget.getBoundingClientRect();
+            if (
+              event.clientX < rect.left ||
+              event.clientX > rect.right ||
+              event.clientY < rect.top ||
+              event.clientY > rect.bottom
+            )
+              setSelected(null);
+          }}
+        >
+          <div className="booking-dialog-header">
+            <div>
+              <span className="eyebrow dark">HOÀN TẤT CHUYẾN ĐI</span>
+              <h2 id="booking-dialog-title">
+                Xác nhận đặt {selected.room.name}
+              </h2>
+            </div>
+            <button
+              type="button"
+              className="outline"
+              aria-label="Đóng xác nhận đặt phòng"
+              disabled={busy}
+              onClick={() => setSelected(null)}
+            >
+              ×
             </button>
-          ) : (
-            <button type="button" className="primary" onClick={onLogin}>
-              Đăng nhập để đặt phòng
-            </button>
-          )}
-        </form>
+          </div>
+          <form onSubmit={book}>
+            <p className="booking-dialog-dates">
+              {from} → {to} · {rooms} phòng · {guests} khách
+            </p>
+            <p>
+              Tổng: {money(selected.total)}. Thanh toán tại khách sạn. Hủy miễn
+              phí trước 00:00 ngày nhận phòng (giờ Việt Nam).
+            </p>
+            {error && (
+              <p className="error" role="alert">
+                {error}
+              </p>
+            )}
+            {busy && <p role="status">Đang xử lý…</p>}
+            <fieldset disabled={busy}>
+              <label>
+                Tên khách
+                <input
+                  autoComplete="name"
+                  ref={guestNameRef}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  maxLength={100}
+                />
+              </label>
+              <label>
+                Số điện thoại
+                <input
+                  type="tel"
+                  autoComplete="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  required
+                  maxLength={30}
+                />
+              </label>
+            </fieldset>
+            {token ? (
+              <button className="primary" disabled={busy}>
+                Xác nhận đặt phòng
+              </button>
+            ) : (
+              <button type="button" className="primary" onClick={onLogin}>
+                Đăng nhập để đặt phòng
+              </button>
+            )}
+          </form>
+        </dialog>
       )}
     </section>
   );
