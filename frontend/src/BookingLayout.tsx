@@ -12,13 +12,22 @@ const navigation = [
   ["saved", "♡", "Đã lưu"],
   ["trips", "▤", "Chuyến đi của tôi"],
   ["profile", "◎", "Tài khoản"],
-  ["manage", "⌂", "Quản lý"],
+  ["manage", "⌂", "Vận hành khách sạn"],
   ["admin", "⚙", "Admin"],
 ] as const;
 export default function BookingLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const { user, session, saved, notice, setNotice, logout, ready } =
-    useBooking();
+  const {
+    user,
+    session,
+    saved,
+    notice,
+    setNotice,
+    logout,
+    ready,
+    canManage,
+    access,
+  } = useBooking();
   const section = router.pathname.split("/")[1];
   const page =
     !section || section === "hotels"
@@ -65,14 +74,14 @@ export default function BookingLayout({ children }: { children: ReactNode }) {
             .filter(
               (item) =>
                 (item[0] !== "saved" || !!session) &&
-                (item[0] !== "admin" ||
-                  user?.roles?.some((role) => role.name === "admin")),
+                (item[0] !== "manage" || canManage) &&
+                (item[0] !== "admin" || access?.admin),
             )
             .map(([id, icon, title]) => (
               <Link
                 href={pagePath(id)}
                 key={id}
-                className={`nav-item ${page === id ? "active" : ""}`}
+                className={`nav-item ${id === "manage" ? "operations-nav" : ""} ${page === id ? "active" : ""}`}
                 aria-current={page === id ? "page" : undefined}
               >
                 <span aria-hidden="true">{icon}</span>

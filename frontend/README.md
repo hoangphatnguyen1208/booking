@@ -44,3 +44,5 @@ See [the project runbook](../README.md) for configuration, live end-to-end testi
 
 
 Danh sách “Đã lưu” yêu cầu đăng nhập và sử dụng API `/me/saved-hotels` (GET, PUT/DELETE `/:id`). Dữ liệu thuộc tài khoản trong PostgreSQL, đồng bộ giữa thiết bị. Khóa `booking.saved` cũ không được đọc hoặc chuyển vào tài khoản vì không xác định được chủ sở hữu. Backend cần chạy migration `009_saved_hotels.sql` trước khi dùng frontend mới.
+
+Quyền vận hành lấy từ `/me/access`: admin tạo khách sạn; owner/manager chỉnh sửa khách sạn và phòng được phân công; owner quản lý thành viên và xóa khách sạn; staff chỉ xem đơn. Người dùng thường không thấy liên kết vận hành và bị chặn khi mở trực tiếp đường dẫn quản lý. Backend vẫn kiểm tra quyền cho mọi thao tác.

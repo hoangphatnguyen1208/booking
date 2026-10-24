@@ -4,7 +4,7 @@ import { useBooking } from "./BookingContext";
 const currentYear = new Date().getFullYear();
 
 export default function Footer() {
-  const { session } = useBooking();
+  const { session, canManage } = useBooking();
   return (
     <footer className="site-footer">
       <div className="footer-main">
@@ -35,7 +35,7 @@ export default function Footer() {
         <nav aria-label="Tài khoản ở footer">
           <h2>Cùng booking.</h2>
           <Link href="/profile">Tài khoản của bạn</Link>
-          <Link href="/manage">Quản lý khách sạn</Link>
+          {canManage && <Link href="/manage">Quản lý khách sạn</Link>}
           <a href="https://unsplash.com" target="_blank" rel="noreferrer">
             Ảnh từ Unsplash ↗
           </a>

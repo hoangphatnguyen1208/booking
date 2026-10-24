@@ -4,6 +4,7 @@ import { api, ApiError } from "./api";
 import type { Hotel, HotelInput } from "./api";
 import { bookingApi } from "./booking-api";
 import Link from "next/link";
+import { useBooking } from "./BookingContext";
 
 const blank: HotelInput = {
   image_url: "",
@@ -24,6 +25,9 @@ export default function HotelManager({
   onLogin: () => void;
   onUnauthorized: () => void;
 }) {
+  const { access } = useBooking();
+  const roleFor = (id: string) =>
+    access?.hotels.find((h) => h.hotel_id === id)?.role;
   const formRef = useRef<HTMLFormElement>(null);
   const [showForm, setShowForm] = useState(false);
   const [items, setItems] = useState<Hotel[]>([]);
@@ -137,18 +141,20 @@ export default function HotelManager({
       <header className="page-heading">
         <div>
           <h1>Quản lý khách sạn</h1>
-          <p>Thông tin khách sạn, phòng và đội ngũ của bạn.</p>
+          <p>Không gian vận hành · Chỉ các khách sạn được phân công.</p>
         </div>
-        <button
-          className="primary"
-          onClick={() => {
-            setEditing(null);
-            setInput(blank);
-            setShowForm(true);
-          }}
-        >
-          + Thêm khách sạn
-        </button>
+        {access?.admin && (
+          <button
+            className="primary"
+            onClick={() => {
+              setEditing(null);
+              setInput(blank);
+              setShowForm(true);
+            }}
+          >
+            + Thêm khách sạn
+          </button>
+        )}
       </header>
       {message && (
         <div className="notice" role="status">
@@ -316,43 +322,48 @@ export default function HotelManager({
                   >
                     Phòng & nhân sự
                   </Link>
-                  <button
-                    className="outline"
-                    disabled={busy}
-                    aria-label={`Sửa ${hotel.name}`}
-                    onClick={() => {
-                      setShowForm(true);
-                      requestAnimationFrame(() =>
-                        formRef.current?.scrollIntoView({ block: "start" }),
-                      );
-                      setEditing(hotel.id);
-                      setInput({
-                        name: hotel.name,
-                        slug: hotel.slug,
-                        address: hotel.address,
-                        city: hotel.city,
-                        country: hotel.country,
-                        rank: hotel.rank,
-                        image_url: hotel.image_url || "",
-                        amenities: hotel.amenities || [],
-                      });
-                      setError("");
-                      setMessage("");
-                    }}
-                  >
-                    Chỉnh sửa
-                  </button>
-                  <button
-                    className="outline"
-                    disabled={busy}
-                    aria-label={`Xóa ${hotel.name}`}
-                    onClick={() => {
-                      setRemoving(hotel);
-                      window.scrollTo(0, 0);
-                    }}
-                  >
-                    Xóa
-                  </button>
+                  {(access?.admin ||
+                    ["owner", "manager"].includes(roleFor(hotel.id) || "")) && (
+                    <button
+                      className="outline"
+                      disabled={busy}
+                      aria-label={`Sửa ${hotel.name}`}
+                      onClick={() => {
+                        setShowForm(true);
+                        requestAnimationFrame(() =>
+                          formRef.current?.scrollIntoView({ block: "start" }),
+                        );
+                        setEditing(hotel.id);
+                        setInput({
+                          name: hotel.name,
+                          slug: hotel.slug,
+                          address: hotel.address,
+                          city: hotel.city,
+                          country: hotel.country,
+                          rank: hotel.rank,
+                          image_url: hotel.image_url || "",
+                          amenities: hotel.amenities || [],
+                        });
+                        setError("");
+                        setMessage("");
+                      }}
+                    >
+                      Chỉnh sửa
+                    </button>
+                  )}
+                  {(access?.admin || roleFor(hotel.id) === "owner") && (
+                    <button
+                      className="outline"
+                      disabled={busy}
+                      aria-label={`Xóa ${hotel.name}`}
+                      onClick={() => {
+                        setRemoving(hotel);
+                        window.scrollTo(0, 0);
+                      }}
+                    >
+                      Xóa
+                    </button>
+                  )}
                 </div>
               </article>
             ))}
@@ -360,9 +371,7 @@ export default function HotelManager({
           {!items.length && !error && (
             <div className="empty-state">
               <h2>Chưa có khách sạn</h2>
-              <p>
-                Thêm khách sạn đầu tiên để bắt đầu quản lý phòng và đặt chỗ.
-              </p>
+              <p>Liên hệ quản trị viên để được phân công khách sạn.</p>
             </div>
           )}
           <div className="pagination">

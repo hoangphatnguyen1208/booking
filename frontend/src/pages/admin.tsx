@@ -1,3 +1,4 @@
+import ManagementGate from "../ManagementGate";
 import Head from "next/head";
 import AdminPanel from "../AdminPanel";
 import { useBooking } from "../BookingContext";
@@ -14,7 +15,9 @@ export default function AdminPage() {
           <p role="status">Đang khôi phục phiên đăng nhập…</p>
         </>
       ) : (
-        <AdminPanel token={session?.token ?? null} />
+        <ManagementGate adminOnly>
+          <AdminPanel token={session?.token ?? null} />
+        </ManagementGate>
       )}
     </>
   );

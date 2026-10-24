@@ -110,7 +110,16 @@ export async function request<T>(
     throw new ApiError(response.status, "Phản hồi từ máy chủ không hợp lệ.");
   }
 }
+export type Access = {
+  admin: boolean;
+  hotels: { hotel_id: string; role: "owner" | "manager" | "staff" }[];
+};
 export const api = {
+  access: (token: string, signal?: AbortSignal) =>
+    request<Access>("/me/access", {
+      headers: { Authorization: `Bearer ${token}` },
+      signal,
+    }),
   savedHotels: (token: string, signal?: AbortSignal) =>
     request<string[]>("/me/saved-hotels", {
       headers: { Authorization: `Bearer ${token}` },

@@ -1,3 +1,4 @@
+import ManagementGate from "../ManagementGate";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import HotelManager from "../HotelManager";
@@ -16,16 +17,18 @@ export default function Manage() {
           <p role="status">Đang khôi phục phiên đăng nhập…</p>
         </>
       ) : (
-        <HotelManager
-          token={session?.token ?? null}
-          onLogin={() => void router.push("/login?next=/manage")}
-          onUnauthorized={() => {
-            setSession(null);
-            setNotice(
-              "Phiên đăng nhập không còn hợp lệ. Vui lòng đăng nhập lại.",
-            );
-          }}
-        />
+        <ManagementGate>
+          <HotelManager
+            token={session?.token ?? null}
+            onLogin={() => void router.push("/login?next=/manage")}
+            onUnauthorized={() => {
+              setSession(null);
+              setNotice(
+                "Phiên đăng nhập không còn hợp lệ. Vui lòng đăng nhập lại.",
+              );
+            }}
+          />
+        </ManagementGate>
       )}
     </>
   );

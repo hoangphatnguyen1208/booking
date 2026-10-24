@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { BookingContext } from "./BookingContext";
 import { useSession } from "./useSession";
 import { api, ApiError } from "./api";
-import type { User } from "./api";
+import type { User, Access } from "./api";
 import { useRouter } from "next/router";
 import { safeReturnPath } from "./return-path";
 
@@ -19,6 +19,46 @@ function useBookingState() {
   useEffect(() => {
     currentToken.current = token;
   }, [token]);
+  const [accessState, setAccessState] = useState<{
+    token: string;
+    value: Access;
+  } | null>(null);
+  const [accessFailure, setAccessFailure] = useState<{
+    token: string;
+    message: string;
+  } | null>(null);
+  const [accessReload, setAccessReload] = useState(0);
+  const access =
+    token && accessState?.token === token ? accessState.value : null;
+  const accessError =
+    token && accessFailure?.token === token ? accessFailure.message : "";
+  const canManage = !!access && (access.admin || access.hotels.length > 0);
+  useEffect(() => {
+    if (!token) return;
+    const c = new AbortController();
+    api
+      .access(token, c.signal)
+      .then((value) => {
+        if (!c.signal.aborted) {
+          setAccessState({ token, value });
+          setAccessFailure(null);
+        }
+      })
+      .catch((error) => {
+        if (!c.signal.aborted)
+          setAccessFailure({
+            token,
+            message:
+              error instanceof Error
+                ? error.message
+                : "Không tải được quyền truy cập.",
+          });
+      });
+    return () => c.abort();
+  }, [token, accessReload]);
+  function retryAccess() {
+    setAccessReload((value) => value + 1);
+  }
   const pendingSaves = useRef(new Set<string>());
   const [savedState, setSavedState] = useState<{
     token: string;
@@ -152,6 +192,10 @@ function useBookingState() {
     setNotice("Bạn đã đăng xuất.");
   }
   return {
+    access,
+    accessError,
+    retryAccess,
+    canManage,
     session,
     setSession,
     ready,

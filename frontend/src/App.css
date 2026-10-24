@@ -2095,3 +2095,6 @@ a.stay-title {
     font-size: 11px;
   }
 }
+
+/* Separate hotel operations from the guest journey. */
+.nav-item.operations-nav { margin-top: 24px; border-top: 1px solid #dce3dc; padding-top: 18px; }

@@ -55,8 +55,11 @@ func fixture(t *testing.T) (*gorm.DB, *lodging.Service, identity.User, identity.
 	if err = conn.Create(&other).Error; err != nil {
 		t.Fatal(err)
 	}
-	h, err := hotel.NewService(hotel.NewRepository(conn)).CreateForActor(context.Background(), owner.ID, &hotel.CreateRequest{Name: "Hotel", Slug: "hotel", City: "Hue", Country: "VN"})
+	h, err := hotel.NewService(hotel.NewRepository(conn)).Create(context.Background(), &hotel.CreateRequest{Name: "Hotel", Slug: "hotel", City: "Hue", Country: "VN"})
 	if err != nil {
+		t.Fatal(err)
+	}
+	if err = conn.Create(&permission.HotelMember{HotelID: h.ID, UserID: owner.ID, Role: "owner"}).Error; err != nil {
 		t.Fatal(err)
 	}
 	return conn, lodging.New(conn), owner, other, *h

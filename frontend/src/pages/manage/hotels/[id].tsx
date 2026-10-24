@@ -1,3 +1,4 @@
+import ManagementGate from "../../../ManagementGate";
 import { useEffect, useState } from "react";
 import Head from "next/head";
 import Link from "next/link";
@@ -60,7 +61,15 @@ export default function ManagedHotel() {
           {error}
         </p>
       ) : (
-        id && <HotelWorkspace key={id} token={session.token} id={id} />
+        id && (
+          <ManagementGate hotelId={id}>
+            <HotelWorkspace
+              key={`${session.token}:${id}`}
+              token={session.token}
+              id={id}
+            />
+          </ManagementGate>
+        )
       )}
     </section>
   );

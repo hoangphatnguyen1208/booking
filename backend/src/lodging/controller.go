@@ -50,6 +50,7 @@ func integer(c *gin.Context, key string, fallback int) int {
 	return n
 }
 func (s *Service) RegisterRoutes(api *gin.RouterGroup, auth gin.HandlerFunc) {
+	api.GET("/me/access", auth, s.AccessHTTP)
 	s.registerSaved(api, auth)
 	s.registerManagement(api, auth)
 	s.registerAdmin(api, auth)

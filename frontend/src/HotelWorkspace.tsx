@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { bookingApi, money, dateLabel } from "./booking-api";
 import type { Room, Inventory, Booking } from "./booking-api";
+import { useBooking } from "./BookingContext";
 import RoomPhoto from "./RoomPhoto";
 import { localDate } from "./catalog";
 export default function HotelWorkspace({
@@ -11,6 +12,11 @@ export default function HotelWorkspace({
   token: string;
   id: string;
 }) {
+  const { access } = useBooking();
+  const memberRole = access?.hotels.find((h) => h.hotel_id === id)?.role;
+  const canEdit =
+    !!access?.admin || memberRole === "owner" || memberRole === "manager";
+  const canMembers = !!access?.admin || memberRole === "owner";
   const [rooms, setRooms] = useState<Room[]>([]),
     [selected, setSelected] = useState<string>(""),
     [name, setName] = useState(""),
@@ -36,6 +42,7 @@ export default function HotelWorkspace({
     [bookingPage, setBookingPage] = useState(1);
   useEffect(() => {
     const c = new AbortController();
+    if (!canEdit) return;
     async function load() {
       try {
         setRooms(await bookingApi.rooms(token, id, c.signal));
@@ -46,7 +53,7 @@ export default function HotelWorkspace({
     }
     void load();
     return () => c.abort();
-  }, [token, id, reload]);
+  }, [token, id, reload, canEdit]);
   function failed(err: unknown) {
     setError(err instanceof Error ? err.message : "Không xử lý được yêu cầu");
   }
@@ -162,221 +169,227 @@ export default function HotelWorkspace({
           {message}
         </p>
       )}
-      <div className="filters">
-        {rooms.map((room) => (
-          <button
-            key={room.id}
-            onClick={() => select(room)}
-            className={selected === room.id ? "selected" : ""}
-          >
-            {room.name}
-            {!room.active ? " (ngừng bán)" : ""}
-          </button>
-        ))}
-        <button
-          onClick={() => {
-            setSelected("");
-            setName("");
-            setImageUrl("");
-            setCapacity(2);
-            setTotal(1);
-            setActive(true);
-            setInventory([]);
-          }}
-        >
-          + Loại phòng mới
-        </button>
-      </div>
-      {imageUrl && (
-        <RoomPhoto
-          key={imageUrl}
-          src={imageUrl}
-          name={name || "đang chỉnh sửa"}
-        />
-      )}
-      <form className="hotel-form" onSubmit={saveRoom}>
-        <h3>{selected ? "Sửa loại phòng" : "Thêm loại phòng"}</h3>
-        <fieldset disabled={busy}>
-          <label>
-            Tên loại phòng
-            <input
-              required
-              maxLength={100}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </label>
-          <label>
-            Sức chứa mỗi phòng
-            <input
-              type="number"
-              min="1"
-              max="20"
-              required
-              value={capacity}
-              onChange={(e) => setCapacity(Number(e.target.value))}
-            />
-          </label>
-          <label>
-            Tổng số phòng
-            <input
-              type="number"
-              min="1"
-              max="10000"
-              required
-              value={total}
-              onChange={(e) => setTotal(Number(e.target.value))}
-            />
-          </label>
-          <label>
-            Trạng thái
-            <select
-              value={String(active)}
-              onChange={(e) => setActive(e.target.value === "true")}
-            >
-              <option value="true">Đang bán</option>
-              <option value="false">Ngừng bán</option>
-            </select>
-          </label>
-          <label>
-            Ảnh phòng (URL HTTPS)
-            <input
-              type="url"
-              maxLength={2048}
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-            />
-          </label>
-          <div className="form-actions">
-            <button className="primary">Lưu loại phòng</button>
-          </div>
-        </fieldset>
-      </form>
-      {selected && (
-        <form className="hotel-form" onSubmit={saveInventory}>
-          <h3>Giá / tồn mỗi ngày (VND)</h3>
-          <p>
-            Ngày kết thúc không nằm trong khoảng mở bán. Tồn không được thấp hơn
-            số đã đặt.
-          </p>
-          <fieldset disabled={busy}>
-            <label>
-              Từ ngày
-              <input
-                type="date"
-                required
-                value={from}
-                onChange={(e) => setFrom(e.target.value)}
-              />
-            </label>
-            <label>
-              Đến ngày
-              <input
-                type="date"
-                required
-                min={from}
-                value={to}
-                onChange={(e) => setTo(e.target.value)}
-              />
-            </label>
-            <label>
-              Số phòng mở bán mỗi ngày
-              <input
-                type="number"
-                required
-                min="0"
-                max={total}
-                value={daily}
-                onChange={(e) => setDaily(Number(e.target.value))}
-              />
-            </label>
-            <label>
-              Giá mỗi đêm (VND)
-              <input
-                type="number"
-                required
-                min="0"
-                max="1000000000000"
-                step="1"
-                value={price}
-                onChange={(e) => setPrice(Number(e.target.value))}
-              />
-            </label>
-            <button className="primary">Lưu giá và tồn</button>
+      {canEdit && (
+        <>
+          <div className="filters">
+            {rooms.map((room) => (
+              <button
+                key={room.id}
+                onClick={() => select(room)}
+                className={selected === room.id ? "selected" : ""}
+              >
+                {room.name}
+                {!room.active ? " (ngừng bán)" : ""}
+              </button>
+            ))}
             <button
-              type="button"
-              className="outline"
-              onClick={() => void loadInventory()}
+              onClick={() => {
+                setSelected("");
+                setName("");
+                setImageUrl("");
+                setCapacity(2);
+                setTotal(1);
+                setActive(true);
+                setInventory([]);
+              }}
             >
-              Xem tồn theo ngày
+              + Loại phòng mới
             </button>
-          </fieldset>
-          <div className="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>Ngày</th>
-                  <th>Tổng mở</th>
-                  <th>Đã đặt</th>
-                  <th>Giá</th>
-                </tr>
-              </thead>
-              <tbody>
-                {inventory.map((row) => (
-                  <tr key={row.date}>
-                    <td>{dateLabel(row.date)}</td>
-                    <td>{row.capacity}</td>
-                    <td>{row.reserved}</td>
-                    <td>{money(row.price)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
-        </form>
+          {imageUrl && (
+            <RoomPhoto
+              key={imageUrl}
+              src={imageUrl}
+              name={name || "đang chỉnh sửa"}
+            />
+          )}
+          <form className="hotel-form" onSubmit={saveRoom}>
+            <h3>{selected ? "Sửa loại phòng" : "Thêm loại phòng"}</h3>
+            <fieldset disabled={busy}>
+              <label>
+                Tên loại phòng
+                <input
+                  required
+                  maxLength={100}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </label>
+              <label>
+                Sức chứa mỗi phòng
+                <input
+                  type="number"
+                  min="1"
+                  max="20"
+                  required
+                  value={capacity}
+                  onChange={(e) => setCapacity(Number(e.target.value))}
+                />
+              </label>
+              <label>
+                Tổng số phòng
+                <input
+                  type="number"
+                  min="1"
+                  max="10000"
+                  required
+                  value={total}
+                  onChange={(e) => setTotal(Number(e.target.value))}
+                />
+              </label>
+              <label>
+                Trạng thái
+                <select
+                  value={String(active)}
+                  onChange={(e) => setActive(e.target.value === "true")}
+                >
+                  <option value="true">Đang bán</option>
+                  <option value="false">Ngừng bán</option>
+                </select>
+              </label>
+              <label>
+                Ảnh phòng (URL HTTPS)
+                <input
+                  type="url"
+                  maxLength={2048}
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                />
+              </label>
+              <div className="form-actions">
+                <button className="primary">Lưu loại phòng</button>
+              </div>
+            </fieldset>
+          </form>
+          {selected && (
+            <form className="hotel-form" onSubmit={saveInventory}>
+              <h3>Giá / tồn mỗi ngày (VND)</h3>
+              <p>
+                Ngày kết thúc không nằm trong khoảng mở bán. Tồn không được thấp
+                hơn số đã đặt.
+              </p>
+              <fieldset disabled={busy}>
+                <label>
+                  Từ ngày
+                  <input
+                    type="date"
+                    required
+                    value={from}
+                    onChange={(e) => setFrom(e.target.value)}
+                  />
+                </label>
+                <label>
+                  Đến ngày
+                  <input
+                    type="date"
+                    required
+                    min={from}
+                    value={to}
+                    onChange={(e) => setTo(e.target.value)}
+                  />
+                </label>
+                <label>
+                  Số phòng mở bán mỗi ngày
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    max={total}
+                    value={daily}
+                    onChange={(e) => setDaily(Number(e.target.value))}
+                  />
+                </label>
+                <label>
+                  Giá mỗi đêm (VND)
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    max="1000000000000"
+                    step="1"
+                    value={price}
+                    onChange={(e) => setPrice(Number(e.target.value))}
+                  />
+                </label>
+                <button className="primary">Lưu giá và tồn</button>
+                <button
+                  type="button"
+                  className="outline"
+                  onClick={() => void loadInventory()}
+                >
+                  Xem tồn theo ngày
+                </button>
+              </fieldset>
+              <div className="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Ngày</th>
+                      <th>Tổng mở</th>
+                      <th>Đã đặt</th>
+                      <th>Giá</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {inventory.map((row) => (
+                      <tr key={row.date}>
+                        <td>{dateLabel(row.date)}</td>
+                        <td>{row.capacity}</td>
+                        <td>{row.reserved}</td>
+                        <td>{money(row.price)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </form>
+          )}
+        </>
       )}
-      <section className="profile-card">
-        <h3>Thành viên quản lý</h3>
-        <button
-          className="outline"
-          disabled={busy}
-          onClick={() => void loadMembers()}
-        >
-          Xem thành viên
-        </button>
-        {members.map((member) => (
-          <p key={member.user_id}>
-            {member.email} · {member.role}
+      {canMembers && (
+        <section className="profile-card">
+          <h3>Thành viên quản lý</h3>
+          <button
+            className="outline"
+            disabled={busy}
+            onClick={() => void loadMembers()}
+          >
+            Xem thành viên
+          </button>
+          {members.map((member) => (
+            <p key={member.user_id}>
+              {member.email} · {member.role}
+            </p>
+          ))}
+          <form className="hotel-form" onSubmit={saveMember}>
+            <fieldset disabled={busy}>
+              <label>
+                Email tài khoản đã đăng ký
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </label>
+              <label>
+                Vai trò
+                <select value={role} onChange={(e) => setRole(e.target.value)}>
+                  <option value="owner">Owner</option>
+                  <option value="manager">Manager</option>
+                  <option value="staff">Staff</option>
+                  <option value="remove">Thu hồi quyền</option>
+                </select>
+              </label>
+              <button className="primary">Cập nhật quyền</button>
+            </fieldset>
+          </form>
+          <p>
+            Chỉ owner/admin được thay đổi thành viên. Không thể thu hồi owner
+            cuối cùng.
           </p>
-        ))}
-        <form className="hotel-form" onSubmit={saveMember}>
-          <fieldset disabled={busy}>
-            <label>
-              Email tài khoản đã đăng ký
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </label>
-            <label>
-              Vai trò
-              <select value={role} onChange={(e) => setRole(e.target.value)}>
-                <option value="owner">Owner</option>
-                <option value="manager">Manager</option>
-                <option value="staff">Staff</option>
-                <option value="remove">Thu hồi quyền</option>
-              </select>
-            </label>
-            <button className="primary">Cập nhật quyền</button>
-          </fieldset>
-        </form>
-        <p>
-          Chỉ owner/admin được thay đổi thành viên. Không thể thu hồi owner cuối
-          cùng.
-        </p>
-      </section>
+        </section>
+      )}
       <section className="profile-card">
         <h3>Đơn của khách sạn</h3>
         <button

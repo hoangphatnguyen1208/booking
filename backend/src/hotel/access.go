@@ -13,8 +13,15 @@ func (s *Service) CreateForActor(ctx context.Context, actor string, req *CreateR
 	if err := validateHotel(&Hotel{Name: req.Name, Slug: req.Slug, Address: req.Address, City: req.City, Country: req.Country, Rank: req.Rank}); err != nil {
 		return nil, err
 	}
+	admin, err := permission.New(s.repo.db).IsAdmin(ctx, actor)
+	if err != nil {
+		return nil, err
+	}
+	if !admin {
+		return nil, permission.ErrForbidden
+	}
 	var result *Hotel
-	err := s.repo.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	err = s.repo.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		h, err := NewService(NewRepository(tx)).Create(ctx, req)
 		if err != nil {
 			return err
