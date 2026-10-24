@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import Head from "next/head";
+import Link from "next/link";
 import { api, ApiError } from "./api";
 import { toStay } from "./catalog";
 import type { Stay } from "./catalog";
 import { useBooking } from "./BookingContext";
 import HotelGrid from "./HotelGrid";
 export default function SavedPage() {
-  const { saved, savedReady } = useBooking();
+  const { session, ready, saved, savedReady, savedError, refreshSaved } =
+    useBooking();
   const [items, setItems] = useState<Stay[]>([]),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(""),
@@ -51,11 +53,32 @@ export default function SavedPage() {
         <div>
           <span className="eyebrow dark">CHO CHUYẾN ĐI TIẾP THEO</span>
           <h1>Những nơi bạn yêu thích</h1>
-          <p>Khách sạn bạn đã lưu trên thiết bị này.</p>
+          <p>Khách sạn đã lưu trong tài khoản của bạn.</p>
         </div>
-        <span className="sample-badge">{saved.length} nơi đã lưu</span>
+        {session && (
+          <span className="sample-badge">{saved.length} nơi đã lưu</span>
+        )}
       </div>
-      {loading ? (
+      {!ready ? (
+        <p role="status">Đang khôi phục phiên đăng nhập…</p>
+      ) : !session ? (
+        <div className="empty-state">
+          <h2>Đăng nhập để xem những nơi đã lưu</h2>
+          <p>Danh sách yêu thích được lưu riêng cho từng tài khoản.</p>
+          <Link className="primary" href="/login?next=%2Fsaved">
+            Đăng nhập →
+          </Link>
+        </div>
+      ) : savedError ? (
+        <div className="empty-state">
+          <p className="error" role="alert">
+            {savedError}
+          </p>
+          <button className="outline" onClick={refreshSaved}>
+            Thử lại
+          </button>
+        </div>
+      ) : !savedReady || loading ? (
         <p role="status">Đang tải khách sạn…</p>
       ) : error ? (
         <div className="empty-state">
@@ -67,7 +90,10 @@ export default function SavedPage() {
           </button>
         </div>
       ) : (
-        <HotelGrid items={items} savedPage />
+        <HotelGrid
+          items={items.filter((item) => saved.includes(item.id))}
+          savedPage
+        />
       )}
     </>
   );

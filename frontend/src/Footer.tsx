@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { useBooking } from "./BookingContext";
 
 const currentYear = new Date().getFullYear();
 
 export default function Footer() {
+  const { session } = useBooking();
   return (
     <footer className="site-footer">
       <div className="footer-main">
@@ -27,7 +29,7 @@ export default function Footer() {
         <nav aria-label="Khám phá ở footer">
           <h2>Chuyến đi của bạn</h2>
           <Link href="/">Khám phá nơi ở</Link>
-          <Link href="/saved">Những nơi đã lưu</Link>
+          {session && <Link href="/saved">Những nơi đã lưu</Link>}
           <Link href="/trips">Đặt phòng của tôi</Link>
         </nav>
         <nav aria-label="Tài khoản ở footer">

@@ -56,10 +56,6 @@ test("all routes and management workspace fit narrow and wide screens", async ({
       "booking.session",
       JSON.stringify({ token: "layout-test", expiresAt: Date.now() + 3600000 }),
     );
-    localStorage.setItem(
-      "booking.saved",
-      JSON.stringify(["11111111-1111-1111-1111-111111111111"]),
-    );
   });
   // Keep routine checks independent of external image availability.
   if (!process.env.LAYOUT_REAL_IMAGES)
@@ -72,7 +68,8 @@ test("all routes and management workspace fit narrow and wide screens", async ({
   await page.route("**/api/v1/**", (route) => {
     const path = new URL(route.request().url()).pathname.replace("/api/v1", "");
     let json: unknown = [];
-    if (path === "/auth/me") json = user;
+    if (path === "/me/saved-hotels") json = [hotel.id];
+    else if (path === "/auth/me") json = user;
     else if (path === "/hotels" || path === "/me/hotels")
       json = {
         items: [

@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { BookingContext } from "./BookingContext";
 import { useSession } from "./useSession";
 import { api, ApiError } from "./api";
 import type { User } from "./api";
-import { readSaved } from "./catalog";
+import { useRouter } from "next/router";
+import { safeReturnPath } from "./return-path";
 
 function useBookingState() {
   const { session, setSession, ready } = useSession();
@@ -12,21 +13,53 @@ function useBookingState() {
   const [notice, setNotice] = useState("");
   const [profileError, setProfileError] = useState("");
   const [profileLoading, setProfileLoading] = useState(false);
-  const [saved, setSaved] = useState<string[]>([]);
-  const [savedReady, setSavedReady] = useState(false);
+  const router = useRouter();
+  const token = session?.token;
+  const currentToken = useRef(token);
   useEffect(() => {
-    // oxlint-disable-next-line react/set-state-in-effect -- Favorites live in browser storage and are restored after hydration.
-    setSaved(readSaved());
-    setSavedReady(true);
-  }, []);
+    currentToken.current = token;
+  }, [token]);
+  const pendingSaves = useRef(new Set<string>());
+  const [savedState, setSavedState] = useState<{
+    token: string;
+    ids: string[];
+    loaded: boolean;
+    error: string;
+  } | null>(null);
+  const [savedReload, setSavedReload] = useState(0);
+  const saved = token && savedState?.token === token ? savedState.ids : [];
+  const savedReady =
+    !!token && savedState?.token === token && savedState.loaded;
+  const savedError =
+    token && savedState?.token === token ? savedState.error : "";
+  function refreshSaved() {
+    setSavedReload((value) => value + 1);
+  }
   useEffect(() => {
-    if (savedReady)
-      try {
-        localStorage.setItem("booking.saved", JSON.stringify(saved));
-      } catch {
-        /* Keep in-memory favorites. */
-      }
-  }, [saved, savedReady]);
+    // oxlint-disable-next-line react/set-state-in-effect -- Reset account data before loading the new session.
+    setSavedState(null);
+    if (!token) return;
+    const c = new AbortController();
+    api
+      .savedHotels(token, c.signal)
+      .then((ids) => {
+        if (!c.signal.aborted)
+          setSavedState({ token, ids, loaded: true, error: "" });
+      })
+      .catch((error) => {
+        if (!c.signal.aborted)
+          setSavedState({
+            token,
+            ids: [],
+            loaded: false,
+            error:
+              error instanceof Error
+                ? error.message
+                : "Không tải được danh sách đã lưu.",
+          });
+      });
+    return () => c.abort();
+  }, [token, savedReload]);
   useEffect(() => {
     if (!session) {
       // oxlint-disable-next-line react/set-state-in-effect -- Clear cached profile when the external session changes.
@@ -73,12 +106,45 @@ function useBookingState() {
     );
     return () => window.clearTimeout(timeout);
   }, [session, setSession]);
-  function toggleSaved(id: string) {
-    setSaved((current) =>
-      current.includes(id)
-        ? current.filter((value) => value !== id)
-        : [...current, id],
-    );
+  async function toggleSaved(id: string) {
+    if (!session || session.expiresAt <= Date.now()) {
+      setNotice("Vui lòng đăng nhập để lưu khách sạn.");
+      void router.push({
+        pathname: "/login",
+        query: { next: safeReturnPath(router.asPath) },
+      });
+      return;
+    }
+    if (!savedReady) {
+      setNotice(savedError || "Đang tải danh sách đã lưu. Vui lòng thử lại.");
+      return;
+    }
+    const requestToken = session.token;
+    const key = `${requestToken}:${id}`;
+    if (pendingSaves.current.has(key)) return;
+    pendingSaves.current.add(key);
+    const remove = saved.includes(id);
+    try {
+      await api.saveHotel(requestToken, id, remove);
+      if (currentToken.current !== requestToken) return;
+      setSavedState((current) =>
+        current?.token === requestToken
+          ? {
+              ...current,
+              ids: remove
+                ? current.ids.filter((value) => value !== id)
+                : [...new Set([...current.ids, id])],
+            }
+          : current,
+      );
+    } catch (error) {
+      if (currentToken.current === requestToken)
+        setNotice(
+          error instanceof Error ? error.message : "Không lưu được khách sạn.",
+        );
+    } finally {
+      pendingSaves.current.delete(key);
+    }
   }
   function logout() {
     setSession(null);
@@ -96,6 +162,8 @@ function useBookingState() {
     profileLoading,
     saved,
     savedReady,
+    savedError,
+    refreshSaved,
     toggleSaved,
     logout,
   };

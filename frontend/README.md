@@ -42,3 +42,5 @@ Dockerfile bật `NEXT_OUTPUT_STANDALONE=1`, build với target API `http://back
 
 See [the project runbook](../README.md) for configuration, live end-to-end testing and deployment. [The frontend plan](../doc/frontend.md) describes the longer-term design.
 
+
+Danh sách “Đã lưu” yêu cầu đăng nhập và sử dụng API `/me/saved-hotels` (GET, PUT/DELETE `/:id`). Dữ liệu thuộc tài khoản trong PostgreSQL, đồng bộ giữa thiết bị. Khóa `booking.saved` cũ không được đọc hoặc chuyển vào tài khoản vì không xác định được chủ sở hữu. Backend cần chạy migration `009_saved_hotels.sql` trước khi dùng frontend mới.

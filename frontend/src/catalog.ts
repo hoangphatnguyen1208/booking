@@ -26,22 +26,3 @@ export function localDate(offset = 0) {
     parts.find((part) => part.type === name)!.value;
   return `${value("year")}-${value("month")}-${value("day")}`;
 }
-export function readSaved(): string[] {
-  try {
-    const value: unknown = JSON.parse(
-      localStorage.getItem("booking.saved") || "[]",
-    );
-    return Array.isArray(value)
-      ? [
-          ...new Set(
-            value.filter(
-              (id): id is string =>
-                typeof id === "string" && /^[a-f0-9-]{36}$/i.test(id),
-            ),
-          ),
-        ]
-      : [];
-  } catch {
-    return [];
-  }
-}

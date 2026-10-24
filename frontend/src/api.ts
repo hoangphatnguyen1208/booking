@@ -111,6 +111,16 @@ export async function request<T>(
   }
 }
 export const api = {
+  savedHotels: (token: string, signal?: AbortSignal) =>
+    request<string[]>("/me/saved-hotels", {
+      headers: { Authorization: `Bearer ${token}` },
+      signal,
+    }),
+  saveHotel: (token: string, id: string, remove: boolean) =>
+    request<{ message: string }>(`/me/saved-hotels/${encodeURIComponent(id)}`, {
+      method: remove ? "DELETE" : "PUT",
+      headers: { Authorization: `Bearer ${token}` },
+    }),
   hotels: (page = 1, signal?: AbortSignal) =>
     request<HotelList>(`/hotels?page=${page}&limit=20`, { signal }),
   hotel: (id: string, signal?: AbortSignal) =>

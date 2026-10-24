@@ -37,6 +37,16 @@ const hotels = [
   },
 ];
 test.beforeEach(async ({ page }) => {
+  let saved: string[] = [];
+  await page.route("**/api/v1/me/saved-hotels**", (route) => {
+    const method = route.request().method();
+    const id = new URL(route.request().url()).pathname.split("/").pop()!;
+    if (method === "PUT") saved = [...new Set([...saved, id])];
+    if (method === "DELETE") saved = saved.filter((value) => value !== id);
+    return route.fulfill({
+      json: method === "GET" ? saved : { message: "ok" },
+    });
+  });
   await page.route("**/api/v1/hotels?*", (route) => {
     const params = new URL(route.request().url()).searchParams;
     const destination = (params.get("destination") || "").toLocaleLowerCase(
@@ -98,6 +108,15 @@ async function login(page: Page) {
 test("search, category, favorite persistence and hotel detail route", async ({
   page,
 }) => {
+  await page.addInitScript(() =>
+    localStorage.setItem(
+      "booking.session",
+      JSON.stringify({ token: "test-token", expiresAt: Date.now() + 3600000 }),
+    ),
+  );
+  await page.route("**/api/v1/auth/me", (route) =>
+    route.fulfill({ json: user }),
+  );
   await page.goto("/");
   await expect(
     page.getByRole("heading", { name: /Đổi một nơi ở/ }),
@@ -229,10 +248,10 @@ test("Next.js supports direct links, legacy hashes and unknown-route 404", async
   ).toBeVisible();
   await expect(page).toHaveTitle("Những nơi bạn yêu thích · booking.");
   await page.reload();
-  await expect(page.getByRole("link", { name: /Đã lưu/ })).toHaveAttribute(
-    "aria-current",
-    "page",
-  );
+  await expect(page.getByRole("link", { name: /Đã lưu/ })).toHaveCount(0);
+  await expect(
+    page.getByRole("heading", { name: "Đăng nhập để xem những nơi đã lưu" }),
+  ).toBeVisible();
   await page.goto("/#manage");
   await expect(page).toHaveURL(/\/manage$/);
   await expect(
@@ -576,10 +595,16 @@ test("hotel pagination requests the next API page", async ({ page }) => {
 test("deleted saved hotels are skipped and detail 404 is visible", async ({
   page,
 }) => {
+  await page.route("**/api/v1/auth/me", (route) =>
+    route.fulfill({ json: user }),
+  );
+  await page.route("**/api/v1/me/saved-hotels", (route) =>
+    route.fulfill({ json: [hotels[0].id] }),
+  );
   await page.addInitScript(() =>
     localStorage.setItem(
-      "booking.saved",
-      JSON.stringify(["11111111-1111-1111-1111-111111111111"]),
+      "booking.session",
+      JSON.stringify({ token: "test-token", expiresAt: Date.now() + 3600000 }),
     ),
   );
   await page.route(

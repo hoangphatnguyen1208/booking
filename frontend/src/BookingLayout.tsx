@@ -64,8 +64,9 @@ export default function BookingLayout({ children }: { children: ReactNode }) {
           {navigation
             .filter(
               (item) =>
-                item[0] !== "admin" ||
-                user?.roles?.some((role) => role.name === "admin"),
+                (item[0] !== "saved" || !!session) &&
+                (item[0] !== "admin" ||
+                  user?.roles?.some((role) => role.name === "admin")),
             )
             .map(([id, icon, title]) => (
               <Link
