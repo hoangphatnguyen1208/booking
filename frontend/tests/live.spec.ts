@@ -68,12 +68,12 @@ test("live PostgreSQL: guest books and cancels a real room through the UI", asyn
   });
   expect(denied.status()).toBe(403);
   await page.goto("/");
-  await page.getByRole("link", { name: "Đăng nhập ↗" }).click();
+  await page.getByRole("link", { name: "Đăng nhập" }).click();
   await page.getByLabel("Email", { exact: true }).fill(guest.email);
   await page.getByLabel("Mật khẩu", { exact: true }).fill(password);
   await page
     .locator(".auth-card")
-    .getByRole("button", { name: "Đăng nhập →", exact: true })
+    .getByRole("button", { name: "Đăng nhập", exact: true })
     .click();
   await expect(
     page.getByRole("button", { name: "Đăng xuất", exact: true }),
@@ -82,7 +82,7 @@ test("live PostgreSQL: guest books and cancels a real room through the UI", asyn
     .getByLabel("Điểm đến", { exact: true })
     .fill("Live Hotel " + suffix);
   await page.getByRole("button", { name: "Tìm nơi ở" }).click();
-  await page.getByRole("link", { name: "Live Hotel " + suffix + " ↗" }).click();
+  await page.getByRole("link", { name: "Live Hotel " + suffix + "" }).click();
   await page
     .getByRole("button", { name: "Kiểm tra phòng trống", exact: true })
     .click();
@@ -120,12 +120,12 @@ test("live PostgreSQL: guest books and cancels a real room through the UI", asyn
   );
   expect((await rows.json())[0].available).toBe(1);
   await page.getByRole("button", { name: "Đăng xuất", exact: true }).click();
-  await page.getByRole("link", { name: "Đăng nhập ↗" }).click();
+  await page.getByRole("link", { name: "Đăng nhập" }).click();
   await page.getByLabel("Email", { exact: true }).fill(owner.email);
   await page.getByLabel("Mật khẩu", { exact: true }).fill(password);
   await page
     .locator(".auth-card")
-    .getByRole("button", { name: "Đăng nhập →", exact: true })
+    .getByRole("button", { name: "Đăng nhập", exact: true })
     .click();
   await expect(
     page.getByRole("button", { name: "Đăng xuất", exact: true }),
@@ -188,7 +188,7 @@ test("live admin can review users, change roles and read audit events", async ({
     "Requires an explicitly bootstrapped test admin",
   );
   await page.goto("/");
-  await page.getByRole("link", { name: "Đăng nhập ↗" }).click();
+  await page.getByRole("link", { name: "Đăng nhập" }).click();
   await page
     .getByLabel("Email", { exact: true })
     .fill(process.env.LIVE_ADMIN_EMAIL!);
@@ -197,7 +197,7 @@ test("live admin can review users, change roles and read audit events", async ({
     .fill(process.env.LIVE_ADMIN_PASSWORD!);
   await page
     .locator(".auth-card")
-    .getByRole("button", { name: "Đăng nhập →", exact: true })
+    .getByRole("button", { name: "Đăng nhập", exact: true })
     .click();
   await page.getByRole("link", { name: "Admin", exact: true }).click();
   const grant = page.getByRole("button", { name: /Cấp quyền admin ·/ }).first();

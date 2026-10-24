@@ -190,7 +190,7 @@ test("all routes and management workspace fit narrow and wide screens", async ({
       });
       if (route === "/") {
         await page
-          .getByRole("link", { name: `${hotel.name} ↗`, exact: true })
+          .getByRole("link", { name: `${hotel.name}`, exact: true })
           .click();
         await expect(page.locator(".hotel-detail-page")).toContainText(
           "Kiểm tra phòng trống",

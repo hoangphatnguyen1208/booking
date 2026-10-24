@@ -7,7 +7,7 @@ test("public content, search and hotel details are HTML with JavaScript disabled
   await expect(
     page.getByRole("heading", { name: /Đổi một nơi ở/ }),
   ).toBeVisible();
-  const hotel = page.getByRole("link", { name: "SSR Hotel Huế ↗" });
+  const hotel = page.getByRole("link", { name: "SSR Hotel Huế" });
   await expect(hotel).toBeVisible();
   await hotel.click();
   await expect(page).toHaveURL(
