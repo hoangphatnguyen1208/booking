@@ -4,6 +4,7 @@ import { BookingProvider } from "../BookingProvider";
 import BookingLayout from "../BookingLayout";
 import "../index.css";
 import "../App.css";
+import "../redesign.css";
 
 export default function BookingApplication({ Component, pageProps }: AppProps) {
   return (
