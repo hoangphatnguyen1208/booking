@@ -236,6 +236,46 @@ test("all routes and management workspace fit narrow and wide screens", async ({
         await page.screenshot({
           path: testInfo.outputPath(`${width}-room-options.png`),
         });
+        const chooseRoom = page.getByRole("button", {
+          name: `Chọn ${room.name}`,
+          exact: true,
+        });
+        await chooseRoom.click();
+        const dialog = page.getByRole("dialog", {
+          name: `Xác nhận đặt ${room.name}`,
+        });
+        await expect(dialog).toBeVisible();
+        await expect(
+          dialog.getByLabel("Tên khách", { exact: true }),
+        ).toBeFocused();
+        await expect
+          .poll(() =>
+            page.evaluate(
+              () => document.documentElement.scrollWidth - innerWidth,
+            ),
+          )
+          .toBeLessThanOrEqual(1);
+        await page.screenshot({
+          path: testInfo.outputPath(`${width}-booking-popup.png`),
+        });
+        await dialog
+          .getByLabel("Tên khách", { exact: true })
+          .fill("Khách thử nghiệm");
+        await dialog
+          .getByRole("button", { name: "Đóng xác nhận đặt phòng" })
+          .click();
+        await expect(dialog).not.toBeVisible();
+        await expect(chooseRoom).toBeFocused();
+        await chooseRoom.click();
+        await expect(
+          dialog.getByLabel("Tên khách", { exact: true }),
+        ).toHaveValue("Khách thử nghiệm");
+        await page.keyboard.press("Escape");
+        await expect(dialog).not.toBeVisible();
+        await expect
+          .poll(() => page.evaluate(() => document.body.style.overflow))
+          .not.toBe("hidden");
+
         await page.goBack();
       }
       if (route === "/trips") {
