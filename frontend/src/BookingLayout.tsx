@@ -18,7 +18,6 @@ const navigation = [
 export default function BookingLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const {
-    user,
     session,
     saved,
     notice,
@@ -35,12 +34,6 @@ export default function BookingLayout({ children }: { children: ReactNode }) {
       : pages.includes(section as Page)
         ? section
         : null;
-  const currentTitle =
-    section === "login"
-      ? "Đăng nhập"
-      : section === "register"
-        ? "Đăng ký"
-        : navigation.find((item) => item[0] === page)?.[2];
   function resetExplore() {
     void router.push("/");
   }
@@ -68,7 +61,6 @@ export default function BookingLayout({ children }: { children: ReactNode }) {
           <span className="brand-icon">b.</span> booking
           <span className="brand-dot">.</span>
         </a>
-        <div className="nav-label">KHÔNG GIAN CỦA BẠN</div>
         <nav aria-label="Điều hướng chính">
           {navigation
             .filter(
@@ -92,36 +84,9 @@ export default function BookingLayout({ children }: { children: ReactNode }) {
               </Link>
             ))}
         </nav>
-        <div className="sidebar-note">
-          <span className="little-sun">☀</span>
-          <h3>Đi đâu đó, thật chậm.</h3>
-          <p>Một nơi mới. Một trải nghiệm mới. Một chút thời gian cho bạn.</p>
-          <button onClick={resetExplore}>
-            Tìm cảm hứng <span>↗</span>
-          </button>
-        </div>
-        <div className="sidebar-footer">
-          <span className="avatar">
-            {user ? user.email.charAt(0).toUpperCase() : "B"}
-          </span>
-          <div>
-            <strong>
-              {user ? user.email.split("@")[0] : "Xin chào, bạn!"}
-            </strong>
-            <small>
-              {session
-                ? "Sẵn sàng cho hành trình mới"
-                : "Bắt đầu hành trình của bạn"}
-            </small>
-          </div>
-        </div>
       </aside>
       <main>
         <header className="topbar">
-          <span>
-            Không gian của bạn <span className="breadcrumb">/</span>{" "}
-            <strong>{currentTitle}</strong>
-          </span>
           <div>
             <span className="locale">VN · Tiếng Việt</span>
             {session ? (

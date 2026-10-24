@@ -2354,3 +2354,33 @@ a.stay-title {
     font-size: 26px;
   }
 }
+
+/* Keep account actions in the brand row on phones. */
+.topbar {
+  justify-content: flex-end;
+}
+@media (max-width: 760px) {
+  .app-shell {
+    position: relative;
+  }
+  .sidebar .brand {
+    width: max-content;
+    min-height: 44px;
+  }
+  .topbar {
+    position: absolute;
+    top: max(12px, env(safe-area-inset-top));
+    right: 16px;
+    min-height: 44px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+  .topbar .outline {
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+  .topbar .outline span {
+    margin-left: 6px;
+  }
+}
