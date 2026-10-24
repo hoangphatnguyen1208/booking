@@ -2097,4 +2097,260 @@ a.stay-title {
 }
 
 /* Separate hotel operations from the guest journey. */
-.nav-item.operations-nav { margin-top: 24px; border-top: 1px solid #dce3dc; padding-top: 18px; }
+.nav-item.operations-nav {
+  margin-top: 24px;
+  border-top: 1px solid #dce3dc;
+  padding-top: 18px;
+}
+
+/* Phone layout: readable fields, thumb-sized controls and local scrolling. */
+@media (max-width: 760px) {
+  .app-shell main,
+  .content,
+  .content > *,
+  .stay-card,
+  .management-info > div {
+    min-width: 0;
+  }
+  .sidebar {
+    padding: max(12px, env(safe-area-inset-top)) 16px 10px;
+  }
+  .sidebar nav {
+    display: flex;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+    gap: 8px;
+    margin: 12px -4px 0;
+    padding: 4px 4px 8px;
+  }
+  .sidebar .nav-item {
+    flex: 0 0 auto;
+    width: auto;
+    min-height: 44px;
+    padding: 10px 12px;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+  .sidebar .nav-item.operations-nav {
+    margin: 0;
+    padding-top: 10px;
+    border-top: 0;
+    border-left: 1px solid #dce3dc;
+  }
+  .topbar {
+    min-height: 56px;
+    padding: 8px 16px;
+    flex-wrap: nowrap;
+    gap: 12px;
+  }
+  .topbar > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .topbar > div {
+    flex-shrink: 0;
+  }
+  .topbar .locale {
+    display: none;
+  }
+  .breadcrumb {
+    padding: 0 5px;
+  }
+  .content {
+    padding: 20px max(16px, env(safe-area-inset-right))
+      max(24px, env(safe-area-inset-bottom))
+      max(16px, env(safe-area-inset-left));
+  }
+  .hero-content {
+    padding: 24px 20px;
+  }
+  .hero p {
+    font-size: 14px;
+    line-height: 1.65;
+  }
+  .search-panel {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 16px 0 28px;
+    padding: 16px;
+    gap: 16px 12px;
+  }
+  .search-panel label,
+  .search-panel label:first-child {
+    min-width: 0;
+    padding: 0;
+    border: 0;
+  }
+  .search-panel label:first-child {
+    grid-column: 1 / -1;
+  }
+  .search-panel label span {
+    font-size: 10px;
+    letter-spacing: 0.6px;
+  }
+  .search-panel input,
+  .search-panel select {
+    display: block;
+    min-height: 44px;
+    width: 100%;
+    max-width: 100%;
+    font-size: 16px;
+    border: 1px solid #d9e3db;
+    border-radius: 8px;
+    padding: 8px;
+    background: #fafcf9;
+  }
+  .search-panel .primary {
+    grid-column: 1 / -1;
+    width: 100%;
+    margin: 0;
+  }
+  .section-heading {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .section-heading p {
+    max-width: none;
+    font-size: 13px;
+  }
+  .sample-badge {
+    font-size: 11px;
+  }
+  .filters button {
+    min-height: 44px;
+    font-size: 12px;
+  }
+  .stay-grid {
+    gap: 24px;
+  }
+  .stay-title {
+    overflow-wrap: anywhere;
+  }
+  .stay-meta {
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 12px;
+  }
+  .stay-card p {
+    font-size: 14px;
+  }
+  .save-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .auth-card {
+    width: 100%;
+    padding: 24px 20px;
+  }
+  .profile-card {
+    padding: 20px;
+  }
+  .profile-card dd {
+    overflow-wrap: anywhere;
+  }
+  .primary,
+  .outline,
+  .text-button {
+    font-size: 14px;
+    min-height: 44px;
+  }
+  .primary {
+    white-space: normal;
+  }
+  .hotel-form input,
+  .hotel-form select,
+  .hotel-form textarea,
+  .booking-panel input,
+  .booking-panel select,
+  .booking-panel textarea,
+  .auth-card input,
+  .profile-card input,
+  .profile-card select {
+    min-height: 44px;
+    max-width: 100%;
+    font-size: 16px;
+  }
+  .hotel-form fieldset {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .management-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .management-actions :is(a, button) {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+    white-space: normal;
+  }
+  .room-option {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+  .room-option > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .room-option .primary {
+    width: 100%;
+  }
+  .workspace > h2 {
+    font-size: 20px;
+  }
+  .table-scroll {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+  .table-scroll th,
+  .table-scroll td {
+    padding: 12px;
+    font-size: 13px;
+  }
+  .notice {
+    align-items: flex-start;
+  }
+  .notice > button {
+    min-width: 44px;
+    min-height: 44px;
+    flex-shrink: 0;
+  }
+  dialog {
+    width: calc(100% - 32px);
+    max-width: 480px;
+    max-height: calc(100dvh - 48px);
+    overflow-y: auto;
+  }
+  .pagination {
+    flex-wrap: wrap;
+  }
+  .footer-main {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 374px) {
+  .search-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .topbar > span {
+    display: none;
+  }
+  .topbar {
+    justify-content: flex-end;
+  }
+  .hero h1 {
+    font-size: 28px;
+  }
+  .hero-content {
+    padding: 24px 16px;
+  }
+  .section-heading h1 {
+    font-size: 26px;
+  }
+}
