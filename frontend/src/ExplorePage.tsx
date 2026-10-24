@@ -175,7 +175,7 @@ export default function ExplorePage({
         <span className="sample-badge">Khách sạn · trang {hotelPage}</span>
       </div>
       <div className="filters" aria-label="Loại nơi ở">
-        {["Tất cả", "3 sao", "4 sao", "5 sao"].map((item, index) => (
+        {["Tất cả", "3 sao", "4 sao", "5 sao"].map((item) => (
           <button
             key={item}
             className={category === item ? "selected" : ""}
@@ -188,7 +188,20 @@ export default function ExplorePage({
               })
             }
           >
-            <span aria-hidden="true">{["✧", "♧", "≈", "⌂"][index]}</span>
+            {item === "Tất cả" ? (
+              <span aria-hidden="true">✧</span>
+            ) : (
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path d="m12 2.5 2.94 5.96 6.58.96-4.76 4.64 1.12 6.55L12 17.52l-5.88 3.09 1.12-6.55L2.48 9.42l6.58-.96L12 2.5Z" />
+              </svg>
+            )}
             {item}
           </button>
         ))}
